@@ -14,7 +14,38 @@ class CompraCertaApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Compra Certa',
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+      ),
       home: const HomePage(),
+    );
+  }
+}
+
+class Produto {
+  String nome;
+  String preco;
+  bool comprado;
+
+  Produto({
+    required this.nome,
+    required this.preco,
+    this.comprado = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'nome': nome,
+      'preco': preco,
+      'comprado': comprado,
+    };
+  }
+
+  factory Produto.fromMap(Map<String, dynamic> map) {
+    return Produto(
+      nome: map['nome'],
+      preco: map['preco'],
+      comprado: map['comprado'] ?? false,
     );
   }
 }
@@ -28,13 +59,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _controller = TextEditingController();
-   List<Map<String, dynamic>> _produtos = [];
+  final TextEditingController _precoController = TextEditingController();
+
+  List<Produto> _produtos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarProdutos();
+  }
+
   void _salvarProdutos() async {
     final prefs = await SharedPreferences.getInstance();
     List<String> listaJson =
-    _produtos.map((item) => jsonEncode(item)).toList();
+    _produtos.map((item) => jsonEncode(item.toMap())).toList();
 
-    prefs.setStringList('produtos', listaJson);
+    await prefs.setStringList('produtos', listaJson);
   }
 
   void _carregarProdutos() async {
@@ -44,124 +84,214 @@ class _HomePageState extends State<HomePage> {
     if (listaSalva != null) {
       setState(() {
         _produtos = listaSalva
-            .map((item) => jsonDecode(item) as Map<String, dynamic>)
+            .map((item) => Produto.fromMap(jsonDecode(item)))
             .toList();
       });
     }
   }
 
   void _adicionarProduto() {
-    if (_controller.text.isNotEmpty) {
+    if (_controller.text.isNotEmpty && _precoController.text.isNotEmpty) {
       setState(() {
-        _produtos.add({
-          'nome': _controller.text,
-          'comprado': false,
-        });
+        _produtos.add(
+          Produto(
+            nome: _controller.text,
+            preco: _precoController.text,
+          ),
+        );
         _controller.clear();
+        _precoController.clear();
       });
+      _salvarProdutos();
     }
+  }
+
+  void _removerProduto(int index) {
+    setState(() {
+      _produtos.removeAt(index);
+    });
+    _salvarProdutos();
+  }
+
+  void _toggleProduto(int index) {
+    setState(() {
+      _produtos[index].comprado = !_produtos[index].comprado;
+    });
+    _salvarProdutos();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.grey[100],
+
       appBar: AppBar(
-        title: const Text('Compra Certa'),
-        centerTitle: true,
-        backgroundColor: Colors.green,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // CAMPO DE TEXTO
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _controller,
-                onSubmitted: (value) {
-                  if (value.isNotEmpty) {
-                    setState(() {
-                      _produtos.add({
-                        'nome': value,
-                        'comprado': false,
-                      });
-                    });
-                    _controller.clear();
-                  }
-                },
-                decoration: const InputDecoration(
-                  hintText: 'Digite um produto...',
-                  prefixIcon: Icon(Icons.search),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // LISTA
-            Expanded(
-              child: ListView.builder(
-                itemCount: _produtos.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      leading: Checkbox(
-                        value: _produtos[index]['comprado'],
-                        onChanged: (value) {
-                          setState(() {
-                            _produtos[index]['comprado'] = value!;
-                          });
-                        },
-                      ),
-                      title: Text(
-                        _produtos[index]['nome'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          decoration: _produtos[index]['comprado']
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            _produtos.removeAt(index);
-                          });
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+        title: const Text(
+          'Compra Certa',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
+      ),
+
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.green,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: InputDecoration(
+                          hintText: 'Digite um produto...',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 100,
+                      child: TextField(
+                        controller: _precoController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'R\$',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _adicionarProduto,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text(
+                    'Adicionar Produto',
+                    style: TextStyle(color: Colors.green),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: _produtos.isEmpty
+                ? const Center(
+              child: Text(
+                'Nenhum produto ainda',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _produtos.length,
+              itemBuilder: (context, index) {
+                final produto = _produtos[index];
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.shade300,
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _toggleProduto(index),
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: produto.comprado
+                                ? Colors.green
+                                : Colors.transparent,
+                            border: Border.all(color: Colors.green),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: produto.comprado
+                              ? const Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Colors.white,
+                          )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              produto.nome,
+                              style: TextStyle(
+                                fontSize: 16,
+                                decoration: produto.comprado
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                                color: produto.comprado
+                                    ? Colors.grey
+                                    : Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'R\$ ${produto.preco}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      GestureDetector(
+                        onTap: () => _removerProduto(index),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
