@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'produt.dart';
+import 'ofertas_page.dart';
+import 'app_navigation.dart';
 
 void main() {
   runApp(const CompraCertaApp());
@@ -16,36 +19,9 @@ class CompraCertaApp extends StatelessWidget {
       title: 'Compra Certa',
       theme: ThemeData(
         primarySwatch: Colors.green,
+        scaffoldBackgroundColor: Colors.grey[100],
       ),
-      home: const HomePage(),
-    );
-  }
-}
-
-class Produto {
-  String nome;
-  String preco;
-  bool comprado;
-
-  Produto({
-    required this.nome,
-    required this.preco,
-    this.comprado = false,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'nome': nome,
-      'preco': preco,
-      'comprado': comprado,
-    };
-  }
-
-  factory Produto.fromMap(Map<String, dynamic> map) {
-    return Produto(
-      nome: map['nome'],
-      preco: map['preco'],
-      comprado: map['comprado'] ?? false,
+      home: const AppNavigation(),
     );
   }
 }
@@ -60,8 +36,31 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _precoController = TextEditingController();
+  final TextEditingController _mercadoController = TextEditingController();
+  final TextEditingController _imagemController = TextEditingController();
+  final TextEditingController _buscaController = TextEditingController();
+
+  final List<String> _categorias = [
+    'Geral',
+    'Alimentação',
+    'Higiene',
+    'Limpeza',
+    'Bebidas',
+  ];
 
   List<Produto> _produtos = [];
+  String _busca = '';
+  String _categoriaSelecionada = 'Geral';
+  String _categoriaFiltro = 'Todos';
+  bool _mostrarBusca = false;
+  bool _ehOferta = true;
+  bool _enquantoDurar = false;
+  int _duracaoSelecionada = 3;
+  bool _mostrarFormularioCadastro = false;
+  int _etapaCadastro = 1;
+  bool _ehRelampago = false;
+  TimeOfDay? _horaInicioRelampago;
+  TimeOfDay? _horaFimRelampago;
 
   @override
   void initState() {
@@ -69,11 +68,97 @@ class _HomePageState extends State<HomePage> {
     _carregarProdutos();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    _precoController.dispose();
+    _mercadoController.dispose();
+    _imagemController.dispose();
+    _buscaController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _categoriasFiltro {
+    return ['Todos', ..._categorias];
+  }
+
+  InputDecoration _input(String? hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
+  String _formatarPreco(double preco) {
+    return preco.toStringAsFixed(2).replaceAll('.', ',');
+  }
+
+  String _normalizarNome(String nome) {
+    return nome.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  double _menorPrecoDoGrupo(String nomeProduto) {
+    final nomeNormalizado = _normalizarNome(nomeProduto);
+
+    final grupo = _produtos.where((p) {
+      return _normalizarNome(p.nome) == nomeNormalizado;
+    }).toList();
+
+    if (grupo.isEmpty) return 0;
+
+    return grupo.map((p) => p.preco).reduce((a, b) => a < b ? a : b);
+  }
+
+  bool _ehMaisBaratoDoGrupo(Produto produto) {
+    return produto.preco == _menorPrecoDoGrupo(produto.nome);
+  }
+
+  void _ordenarProdutos() {
+    _produtos.sort((a, b) {
+      final aMaisBarato = _ehMaisBaratoDoGrupo(a);
+      final bMaisBarato = _ehMaisBaratoDoGrupo(b);
+
+      if (aMaisBarato && !bMaisBarato) return -1;
+      if (!aMaisBarato && bMaisBarato) return 1;
+
+      final menorA = _menorPrecoDoGrupo(a.nome);
+      final menorB = _menorPrecoDoGrupo(b.nome);
+
+      final compararGrupo = menorA.compareTo(menorB);
+      if (compararGrupo != 0) return compararGrupo;
+
+      final compararNome = _normalizarNome(
+        a.nome,
+      ).compareTo(_normalizarNome(b.nome));
+      if (compararNome != 0) return compararNome;
+
+      return a.preco.compareTo(b.preco);
+    });
+  }
+
+  void _mostrarMensagem(String texto, {Color? corFundo}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(texto),
+        backgroundColor: corFundo ?? Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(12),
+      ),
+    );
+  }
+
   void _salvarProdutos() async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> listaJson =
-    _produtos.map((item) => jsonEncode(item.toMap())).toList();
-
+    final listaJson = _produtos
+        .map((item) => jsonEncode(item.toMap()))
+        .toList();
     await prefs.setStringList('produtos', listaJson);
   }
 
@@ -83,34 +168,148 @@ class _HomePageState extends State<HomePage> {
 
     if (listaSalva != null) {
       setState(() {
+        final agora = DateTime.now();
+
         _produtos = listaSalva
             .map((item) => Produto.fromMap(jsonDecode(item)))
+            .where((produto) {
+          // mantém se NÃO for oferta
+          if (!produto.ehOferta) return true;
+
+          if (produto.ehRelampago) {
+            return produto.fimProgramado != null &&
+                produto.fimProgramado!.isAfter(agora);
+          }
+
+          // mantém se for "enquanto durar"
+          if (produto.enquantoDurar) return true;
+
+          // mantém se ainda não venceu
+          if (produto.validade != null &&
+              produto.validade!.isAfter(agora)) {
+            return true;
+          }
+
+          // se chegou aqui, remove
+          return false;
+        })
             .toList();
+
+        _ordenarProdutos();
       });
     }
   }
 
   void _adicionarProduto() {
-    if (_controller.text.isNotEmpty && _precoController.text.isNotEmpty) {
-      setState(() {
-        _produtos.add(
-          Produto(
-            nome: _controller.text,
-            preco: _precoController.text,
-          ),
-        );
-        _controller.clear();
-        _precoController.clear();
-      });
-      _salvarProdutos();
-    }
-  }
+    final nome = _controller.text.trim();
+    final precoTexto = _precoController.text.trim();
+    final mercadoTexto = _mercadoController.text.trim();
+    final imagemTexto = _imagemController.text.trim();
 
-  void _removerProduto(int index) {
+    DateTime? validade;
+    DateTime? inicioRelampago;
+    DateTime? fimRelampago;
+    final agora = DateTime.now();
+
+    if (_ehRelampago) {
+      if (_horaInicioRelampago == null || _horaFimRelampago == null) {
+        _mostrarMensagem(
+          'Escolha o horário de início e fim da oferta relâmpago.',
+          corFundo: Colors.red,
+        );
+        return;
+      }
+
+      final agora = DateTime.now();
+
+      inicioRelampago = DateTime(
+        agora.year,
+        agora.month,
+        agora.day,
+        _horaInicioRelampago!.hour,
+        _horaInicioRelampago!.minute,
+      );
+
+      fimRelampago = DateTime(
+        agora.year,
+        agora.month,
+        agora.day,
+        _horaFimRelampago!.hour,
+        _horaFimRelampago!.minute,
+      );
+
+      fimRelampago = DateTime(
+        agora.year,
+        agora.month,
+        agora.day,
+        _horaFimRelampago!.hour,
+        _horaFimRelampago!.minute,
+      );
+
+      if (!fimRelampago.isAfter(inicioRelampago)) {
+        _mostrarMensagem(
+          'O horário final precisa ser depois do horário inicial.',
+          corFundo: Colors.red,
+        );
+        return;
+      }
+    }
+
+    if (!_enquantoDurar && !_ehRelampago) {
+      validade = agora.add(Duration(days: _duracaoSelecionada));
+    }
+
+    if (nome.isEmpty || precoTexto.isEmpty) {
+      _mostrarMensagem('Preencha nome e preço!', corFundo: Colors.red);
+      return;
+    }
+
+    final preco = double.tryParse(precoTexto.replaceAll(',', '.'));
+
+    if (preco == null) {
+      _mostrarMensagem('Preço inválido!', corFundo: Colors.red);
+      return;
+    }
+
     setState(() {
-      _produtos.removeAt(index);
+      _produtos.add(
+        Produto(
+          nome: nome,
+          preco: preco,
+          comprado: false,
+          categoria: _categoriaSelecionada,
+          mercado: mercadoTexto.isEmpty ? 'Sem mercado' : mercadoTexto,
+          ehOferta: _ehOferta,
+          enquantoDurar: _enquantoDurar,
+          validade: validade,
+          imagemUrl: imagemTexto,
+          ehRelampago: _ehRelampago,
+          inicioProgramado: inicioRelampago,
+          fimProgramado: fimRelampago,
+        ),
+      );
+
+      _ordenarProdutos();
     });
+
+    _controller.clear();
+    _precoController.clear();
+    _mercadoController.clear();
+    _imagemController.clear();
+    setState(() {
+      _ehOferta = true;
+      _enquantoDurar = false;
+      _duracaoSelecionada = 3;
+      _ehRelampago = false;
+      _horaInicioRelampago = null;
+      _horaFimRelampago = null;
+      _mostrarFormularioCadastro = false;
+    });
+
     _salvarProdutos();
+    FocusScope.of(context).unfocus();
+
+    _mostrarMensagem('Produto adicionado com sucesso.');
   }
 
   void _toggleProduto(int index) {
@@ -120,10 +319,847 @@ class _HomePageState extends State<HomePage> {
     _salvarProdutos();
   }
 
+  void _removerProduto(int index) {
+    final nomeRemovido = _produtos[index].nome;
+
+    setState(() {
+      _produtos.removeAt(index);
+      _ordenarProdutos();
+    });
+
+    _salvarProdutos();
+    _mostrarMensagem(
+      '"$nomeRemovido" removido da lista.',
+      corFundo: Colors.red,
+    );
+  }
+
+  void _limparBusca() {
+    _buscaController.clear();
+    setState(() {
+      _busca = '';
+    });
+  }
+
+  void _alternarBusca() {
+    setState(() {
+      _mostrarBusca = !_mostrarBusca;
+      if (!_mostrarBusca) {
+        _limparBusca();
+      }
+    });
+  }
+
+  Future<void> _confirmarLimparLista() async {
+    if (_produtos.isEmpty) {
+      _mostrarMensagem('A lista já está vazia.', corFundo: Colors.orange);
+      return;
+    }
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Limpar lista'),
+          content: const Text(
+            'Tem certeza que deseja apagar todos os produtos da lista?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+
+            const SizedBox(height: 10),
+
+            if (_ehOferta) ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Validade da oferta',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('24h'),
+                        selected: _duracaoSelecionada == 1 && !_enquantoDurar,
+                        onSelected: (_) {
+                          setState(() {
+                            _duracaoSelecionada = 1;
+                            _enquantoDurar = false;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('3 dias'),
+                        selected: _duracaoSelecionada == 3 && !_enquantoDurar,
+                        onSelected: (_) {
+                          setState(() {
+                            _duracaoSelecionada = 3;
+                            _enquantoDurar = false;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('7 dias'),
+                        selected: _duracaoSelecionada == 7 && !_enquantoDurar,
+                        onSelected: (_) {
+                          setState(() {
+                            _duracaoSelecionada = 7;
+                            _enquantoDurar = false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _enquantoDurar,
+
+                        activeColor: Colors.white,
+                        checkColor: Colors.green,
+                        onChanged: (valor) {
+                          setState(() {
+                            _enquantoDurar = valor ?? false;
+                          });
+                        },
+                      ),
+
+                      if (_ehOferta) ...[
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _ehRelampago,
+                              activeColor: Colors.white,
+                              checkColor: Colors.green,
+                              onChanged: (valor) {
+                                setState(() {
+                                  _ehRelampago = valor ?? false;
+                                });
+                              },
+                            ),
+                            const Text(
+                              'Oferta relâmpago',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        if (_ehRelampago) ...[
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _ehRelampago,
+                                activeColor: Colors.white,
+                                checkColor: Colors.green,
+                                onChanged: (valor) {
+                                  setState(() {
+                                    _ehRelampago = valor ?? false;
+                                  });
+                                },
+                              ),
+                              const Text(
+                                '⚡ Oferta relâmpago',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          if (_ehRelampago) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      final horario = await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+
+                                      if (horario == null) return;
+
+                                      setState(() {
+                                        _horaInicioRelampago = horario;
+                                      });
+                                    },
+                                    child: Text(
+                                      _horaInicioRelampago == null
+                                          ? 'Início'
+                                          : 'Início: ${_horaInicioRelampago!
+                                          .format(context)}',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      final horario = await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+
+                                      if (horario == null) return;
+
+                                      setState(() {
+                                        _horaFimRelampago = horario;
+                                      });
+                                    },
+                                    child: Text(
+                                      _horaFimRelampago == null
+                                          ? 'Fim'
+                                          : 'Fim: ${_horaFimRelampago!.format(
+                                          context)}',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    final horario = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                    );
+
+                                    if (horario == null) return;
+
+                                    setState(() {
+                                      _horaInicioRelampago = horario;
+                                    });
+                                  },
+                                  child: Text(
+                                    _horaInicioRelampago == null
+                                        ? 'Início'
+                                        : 'Início: ${_horaInicioRelampago!
+                                        .format(context)}',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    final horario = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                    );
+
+                                    if (horario == null) return;
+
+                                    setState(() {
+                                      _horaFimRelampago = horario;
+                                    });
+                                  },
+                                  child: Text(
+                                    _horaFimRelampago == null
+                                        ? 'Fim'
+                                        : 'Fim: ${_horaFimRelampago!.format(
+                                        context)}',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _enquantoDurar,
+                              onChanged: (value) {
+                                setState(() {
+                                  _enquantoDurar = value!;
+                                });
+                              },
+                            ),
+                            const Text('Enquanto durar o estoque'),
+                          ],
+                        ),
+
+                        if (!_enquantoDurar)
+                          DropdownButton<int>(
+                            value: _duracaoSelecionada,
+                            onChanged: (value) {
+                              setState(() {
+                                _duracaoSelecionada = value!;
+                              });
+                            },
+                            items: [1, 2, 3, 5, 7]
+                                .map(
+                                  (dias) =>
+                                  DropdownMenuItem(
+                                    value: dias,
+                                    child: Text('$dias dias'),
+                                  ),
+                            )
+                                .toList(),
+                          ),
+                      ],
+
+                      const Text(
+                        'Enquanto durar o estoque',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Apagar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar == true) {
+      setState(() {
+        _produtos.clear();
+        _categoriaFiltro = 'Todos';
+      });
+
+      _salvarProdutos();
+      _mostrarMensagem('Lista apagada com sucesso.', corFundo: Colors.red);
+    }
+  }
+
+  void _editarProduto(int index) {
+    final nomeController = TextEditingController(text: _produtos[index].nome);
+    final precoController = TextEditingController(
+      text: _formatarPreco(_produtos[index].preco),
+    );
+    final mercadoController = TextEditingController(
+      text: _produtos[index].mercado == 'Sem mercado'
+          ? ''
+          : _produtos[index].mercado,
+    );
+
+    String categoriaEditada = _produtos[index].categoria;
+
+    if (!_categorias.contains(categoriaEditada)) {
+      categoriaEditada = 'Geral';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Editar produto'),
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nomeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do produto',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: precoController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(labelText: 'Preço'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: mercadoController,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(
+                        labelText: 'Mercado',
+                        hintText: 'Ex: Supermercado Brasil',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: categoriaEditada,
+                      decoration: const InputDecoration(labelText: 'Categoria'),
+                      items: _categorias.map((categoria) {
+                        return DropdownMenuItem<String>(
+                          value: categoria,
+                          child: Text(categoria),
+                        );
+                      }).toList(),
+                      onChanged: (valor) {
+                        if (valor == null) return;
+                        setStateDialog(() {
+                          categoriaEditada = valor;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final novoNome = nomeController.text.trim();
+                final novoPrecoTexto = precoController.text.trim();
+                final novoMercadoTexto = mercadoController.text.trim();
+
+                if (novoNome.isEmpty || novoPrecoTexto.isEmpty) {
+                  _mostrarMensagem(
+                    'Preencha nome e preço!',
+                    corFundo: Colors.red,
+                  );
+                  return;
+                }
+
+                final novoPreco = double.tryParse(
+                  novoPrecoTexto.replaceAll(',', '.'),
+                );
+
+                if (novoPreco == null) {
+                  _mostrarMensagem('Preço inválido!', corFundo: Colors.red);
+                  return;
+                }
+
+                setState(() {
+                  _produtos[index].nome = novoNome;
+                  _produtos[index].preco = novoPreco;
+                  _produtos[index].categoria = categoriaEditada;
+                  _produtos[index].mercado = novoMercadoTexto.isEmpty
+                      ? 'Sem mercado'
+                      : novoMercadoTexto;
+                  _ordenarProdutos();
+                });
+
+                _salvarProdutos();
+                Navigator.of(context).pop();
+                _mostrarMensagem('Produto atualizado com sucesso.');
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCabecalhoSecao(String titulo) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      child: Text(
+        titulo,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.green,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumoPorCategoria() {
+    final categoriasComProdutos = _categorias.where((categoria) {
+      return _produtos.any((produto) => produto.categoria == categoria);
+    }).toList();
+
+    if (categoriasComProdutos.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade300,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Resumo por categoria',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...categoriasComProdutos.map((categoria) {
+              final totalCategoria = _produtos
+                  .where((produto) => produto.categoria == categoria)
+                  .fold<double>(0, (total, produto) => total + produto.preco);
+
+              final quantidadeCategoria = _produtos
+                  .where((produto) => produto.categoria == categoria)
+                  .length;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('$categoria ($quantidadeCategoria)'),
+                    Text(
+                      'R\$ ${_formatarPreco(totalCategoria)}',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltroCategorias() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: SizedBox(
+        height: 42,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: _categoriasFiltro.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final categoria = _categoriasFiltro[index];
+            final selecionada = categoria == _categoriaFiltro;
+
+            return ChoiceChip(
+              label: Text(categoria),
+              selected: selecionada,
+              selectedColor: Colors.green,
+              backgroundColor: Colors.white,
+              labelStyle: TextStyle(
+                color: selecionada ? Colors.white : Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+              side: BorderSide(
+                color: selecionada ? Colors.green : Colors.green.shade200,
+              ),
+              onSelected: (_) {
+                setState(() {
+                  _categoriaFiltro = categoria;
+                });
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardProduto(Produto produto, int indiceReal, int ordemAnimacao) {
+    final maisBarato = _ehMaisBaratoDoGrupo(produto);
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(
+        '${produto.nome}-${produto.preco}-${produto.mercado}-$indiceReal',
+      ),
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 220 + (ordemAnimacao * 40)),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: Dismissible(
+        key: Key('${produto.nome}-${produto.mercado}-$indiceReal'),
+        background: Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 20),
+          decoration: BoxDecoration(
+            color: Colors.blue,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.edit, color: Colors.white),
+        ),
+        secondaryBackground: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.startToEnd) {
+            _editarProduto(indiceReal);
+            return false;
+          }
+
+          final confirmar = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('Excluir produto'),
+                content: const Text('Deseja realmente excluir este produto?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Excluir'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          return confirmar ?? false;
+        },
+        onDismissed: (direction) {
+          if (direction == DismissDirection.endToStart) {
+            _removerProduto(indiceReal);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: maisBarato ? Colors.green[50] : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade300,
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: maisBarato
+                ? Border.all(color: Colors.green.shade200, width: 1.2)
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (maisBarato)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Mais barato',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _toggleProduto(indiceReal),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: produto.comprado
+                            ? Colors.green
+                            : Colors.transparent,
+                        border: Border.all(color: Colors.green),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: produto.comprado
+                          ? const Icon(
+                        Icons.check,
+                        size: 18,
+                        color: Colors.white,
+                      )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          produto.nome,
+                          style: TextStyle(
+                            fontSize: 16,
+                            decoration: produto.comprado
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                            color: produto.comprado
+                                ? Colors.grey
+                                : Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          produto.mercado,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blueGrey[700],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          produto.categoria,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'R\$ ${_formatarPreco(produto.preco)}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (produto.ehOferta) ...[
+                          Text(
+                            produto.enquantoDurar
+                                ? 'Enquanto durar o estoque'
+                                : produto.validade != null
+                                ? 'Válido até ${produto.validade!
+                                .day
+                                .toString()
+                                .padLeft(2, '0')}/${produto.validade!.month
+                                .toString().padLeft(2, '0')}'
+                                : '',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final produtosFiltrados = _produtos.where((produto) {
+      final textoBusca = _busca.toLowerCase();
+
+      final bateBusca =
+          produto.nome.toLowerCase().contains(textoBusca) ||
+              produto.mercado.toLowerCase().contains(textoBusca);
+
+      final bateCategoria =
+          _categoriaFiltro == 'Todos' || produto.categoria == _categoriaFiltro;
+
+      final agora = DateTime.now();
+
+      if (produto.ehRelampago) {
+        if (produto.inicioProgramado == null || produto.fimProgramado == null) {
+          return false;
+        }
+
+        if (agora.isBefore(produto.inicioProgramado!) ||
+            agora.isAfter(produto.fimProgramado!)) {
+          return false;
+        }
+      }
+
+      return bateBusca && bateCategoria;
+    }).toList();
+
+    final maisBaratos = produtosFiltrados.where(_ehMaisBaratoDoGrupo).toList();
+
+    final outrosProdutos = produtosFiltrados
+        .where((p) => !_ehMaisBaratoDoGrupo(p))
+        .toList();
+
+    final totalItens = _produtos.length;
+    final itensPendentes = _produtos
+        .where((p) => !p.comprado)
+        .length;
+    final valorTotal = _produtos.fold<double>(
+      0,
+          (total, produto) => total + produto.preco,
+    );
+
+    int contadorAnimacao = 0;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      resizeToAvoidBottomInset: true,
 
       appBar: AppBar(
         title: const Text(
@@ -131,35 +1167,33 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _alternarBusca,
+            icon: Icon(_mostrarBusca ? Icons.close : Icons.search),
+            tooltip: _mostrarBusca ? 'Fechar busca' : 'Abrir busca',
+          ),
+          IconButton(
+            onPressed: _confirmarLimparLista,
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: 'Limpar lista',
+          ),
+        ],
       ),
 
       body: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.green,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              children: [
+          Column(
+            children: [
+
+              /// ===== ETAPA 1 =====
+              if (_etapaCadastro == 1) ...[
                 Row(
                   children: [
                     Expanded(
                       child: TextField(
                         controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: 'Digite um produto...',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                        decoration: _input('Digite um produto...'),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -168,131 +1202,264 @@ class _HomePageState extends State<HomePage> {
                       child: TextField(
                         controller: _precoController,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'R\$',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                        decoration: _input('R\$'),
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 10),
+
+                DropdownButtonFormField<String>(
+                  value: _categoriaSelecionada,
+                  decoration: _input(null),
+                  items: _categorias.map((c) {
+                    return DropdownMenuItem(value: c, child: Text(c));
+                  }).toList(),
+                  onChanged: (v) => setState(() => _categoriaSelecionada = v!),
+                ),
+
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _imagemController,
+                  decoration: _input('URL da imagem...'),
+                ),
+
+                const SizedBox(height: 15),
+
                 ElevatedButton(
-                  onPressed: _adicionarProduto,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  child: const Text(
-                    'Adicionar Produto',
-                    style: TextStyle(color: Colors.green),
-                  ),
+                  onPressed: () {
+                    setState(() {
+                      _etapaCadastro = 2;
+                    });
+                  },
+                  child: const Text('Próximo'),
                 ),
               ],
-            ),
+
+              /// ===== ETAPA 2 =====
+              if (_etapaCadastro == 2) ...[
+                const SizedBox(height: 4),
+
+                ...[
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _ehRelampago,
+                        onChanged: (v) =>
+                            setState(() => _ehRelampago = v ?? false),
+                      ),
+                      const Text(
+                        '⚡ Oferta relâmpago',
+                        style: TextStyle(
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (_ehRelampago)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final h = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+                              if (h != null) {
+                                setState(() => _horaInicioRelampago = h);
+                              }
+                            },
+                            child: Text(
+                              _horaInicioRelampago == null
+                                  ? 'Início'
+                                  : _horaInicioRelampago!.format(context),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final h = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+                              if (h != null) {
+                                setState(() => _horaFimRelampago = h);
+                              }
+                            },
+                            child: Text(
+                              _horaFimRelampago == null
+                                  ? 'Fim'
+                                  : _horaFimRelampago!.format(context),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _enquantoDurar,
+                        onChanged: (v) =>
+                            setState(() => _enquantoDurar = v ?? false),
+                      ),
+                      const Text(
+                        'Enquanto durar o estoque',
+                        style: TextStyle(
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (!_enquantoDurar)
+                    DropdownButtonFormField<int>(
+                      value: _duracaoSelecionada,
+                      decoration: _input(null),
+                      items: const [
+                        DropdownMenuItem(value: 1, child: Text('24 horas')),
+                        DropdownMenuItem(value: 3, child: Text('3 dias')),
+                        DropdownMenuItem(value: 7, child: Text('7 dias')),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _duracaoSelecionada = v!),
+                    ),
+                ],
+
+                const SizedBox(height: 15),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _etapaCadastro = 1;
+                          });
+                        },
+                        child: const Text('Voltar'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _adicionarProduto,
+                        child: const Text('Finalizar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
 
+          _buildFiltroCategorias(),
+          if (_mostrarBusca)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: TextField(
+                controller: _buscaController,
+                onChanged: (valor) {
+                  setState(() {
+                    _busca = valor;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Buscar produto ou mercado...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _busca.isNotEmpty
+                      ? IconButton(
+                    onPressed: _limparBusca,
+                    icon: const Icon(Icons.clear),
+                  )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
           Expanded(
-            child: _produtos.isEmpty
-                ? const Center(
+            child: produtosFiltrados.isEmpty
+                ? Center(
               child: Text(
-                'Nenhum produto ainda',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                _produtos.isEmpty
+                    ? 'Nenhum produto ainda'
+                    : 'Nenhum produto encontrado',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
             )
-                : ListView.builder(
+                : ListView(
               padding: const EdgeInsets.all(12),
-              itemCount: _produtos.length,
-              itemBuilder: (context, index) {
-                final produto = _produtos[index];
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.shade300,
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _toggleProduto(index),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: produto.comprado
-                                ? Colors.green
-                                : Colors.transparent,
-                            border: Border.all(color: Colors.green),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: produto.comprado
-                              ? const Icon(
-                            Icons.check,
-                            size: 18,
-                            color: Colors.white,
-                          )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              produto.nome,
-                              style: TextStyle(
-                                fontSize: 16,
-                                decoration: produto.comprado
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
-                                color: produto.comprado
-                                    ? Colors.grey
-                                    : Colors.black,
-                              ),
-                            ),
-                            Text(
-                              'R\$ ${produto.preco}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      GestureDetector(
-                        onTap: () => _removerProduto(index),
-                        child: const Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              children: [
+                if (maisBaratos.isNotEmpty) ...[
+                  _buildCabecalhoSecao('Mais baratos'),
+                  ...maisBaratos.map((produto) {
+                    final indiceReal = _produtos.indexOf(produto);
+                    final widget = _buildCardProduto(
+                      produto,
+                      indiceReal,
+                      contadorAnimacao,
+                    );
+                    contadorAnimacao++;
+                    return widget;
+                  }),
+                ],
+                if (outrosProdutos.isNotEmpty) ...[
+                  _buildCabecalhoSecao('Outros produtos'),
+                  ...outrosProdutos.map((produto) {
+                    final indiceReal = _produtos.indexOf(produto);
+                    final widget = _buildCardProduto(
+                      produto,
+                      indiceReal,
+                      contadorAnimacao,
+                    );
+                    contadorAnimacao++;
+                    return widget;
+                  }),
+                ],
+              ],
             ),
           ),
         ],
       ),
+      floatingActionButton: _mostrarFormularioCadastro && _etapaCadastro == 1
+          ? FloatingActionButton(
+        backgroundColor: Colors.green,
+        onPressed: () {
+          setState(() {
+            _mostrarFormularioCadastro = false;
+          });
+        },
+        child: const Icon(Icons.close),
+      )
+          : !_mostrarFormularioCadastro
+          ? FloatingActionButton(
+        backgroundColor: Colors.green,
+        onPressed: () {
+          setState(() {
+            _mostrarFormularioCadastro = true;
+            _etapaCadastro = 1;
+          });
+        },
+        child: const Icon(Icons.add),
+      )
+          : null,
     );
   }
 }
