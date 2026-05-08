@@ -2,15 +2,36 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'produt.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
+
 
   @override
   State<OfertasPage> createState() => _OfertasPageState();
 }
 
 class _OfertasPageState extends State<OfertasPage> {
+  Future<void> _abrirMapa(String endereco) async {
+    final enderecoCompleto = endereco.trim();
+
+    if (enderecoCompleto.isEmpty) {
+      debugPrint('Endereço vazio.');
+      return;
+    }
+
+    final Uri url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(
+          enderecoCompleto)}',
+    );
+
+    await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
   final TextEditingController _buscaController = TextEditingController();
 
   List<Produto> _ofertas = [];
@@ -100,28 +121,28 @@ class _OfertasPageState extends State<OfertasPage> {
       _ofertas = listaSalva
           .map((item) => Produto.fromMap(jsonDecode(item)))
           .where((produto) {
-            final agora = DateTime.now();
+        final agora = DateTime.now();
 
-            if (!produto.ehOferta) return false;
+        if (!produto.ehOferta) return false;
 
-            if (produto.ehRelampago) {
-              if (produto.inicioProgramado == null ||
-                  produto.fimProgramado == null) {
-                return false;
-              }
+        if (produto.ehRelampago) {
+          if (produto.inicioProgramado == null ||
+              produto.fimProgramado == null) {
+            return false;
+          }
 
-              return agora.isAfter(produto.inicioProgramado!) &&
-                  agora.isBefore(produto.fimProgramado!);
-            }
+          return agora.isAfter(produto.inicioProgramado!) &&
+              agora.isBefore(produto.fimProgramado!);
+        }
 
-            final ofertaValida =
-                produto.enquantoDurar ||
+        final ofertaValida =
+            produto.enquantoDurar ||
                 (produto.validade != null && produto.validade!.isAfter(agora));
 
-            if (!ofertaValida) return false;
+        if (!ofertaValida) return false;
 
-            return true;
-          })
+        return true;
+      })
           .toList();
       _ofertas.sort((a, b) {
         final aMenor = _ehMenorPreco(a);
@@ -165,12 +186,13 @@ class _OfertasPageState extends State<OfertasPage> {
                   const SizedBox(height: 12),
                   if (_ofertas.isEmpty)
                     _buildMensagemVazia('Nenhuma oferta cadastrada ainda.')
-                  else if (ofertasFiltradas.isEmpty)
-                    _buildMensagemVazia('Nenhuma oferta encontrada.')
                   else
-                    ...ofertasFiltradas.map((produto) {
-                      return _buildOfertaCard(produto);
-                    }),
+                    if (ofertasFiltradas.isEmpty)
+                      _buildMensagemVazia('Nenhuma oferta encontrada.')
+                    else
+                      ...ofertasFiltradas.map((produto) {
+                        return _buildOfertaCard(produto);
+                      }),
                 ],
               ),
             ),
@@ -271,14 +293,14 @@ class _OfertasPageState extends State<OfertasPage> {
         prefixIcon: const Icon(Icons.search),
         suffixIcon: _busca.isNotEmpty
             ? IconButton(
-                onPressed: () {
-                  _buscaController.clear();
-                  setState(() {
-                    _busca = '';
-                  });
-                },
-                icon: const Icon(Icons.clear),
-              )
+          onPressed: () {
+            _buscaController.clear();
+            setState(() {
+              _busca = '';
+            });
+          },
+          icon: const Icon(Icons.clear),
+        )
             : null,
         filled: true,
         fillColor: Colors.white,
@@ -319,72 +341,72 @@ class _OfertasPageState extends State<OfertasPage> {
           Expanded(
             child: destaque == null
                 ? const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'OFERTA DO DIA 🔥',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Cadastre ofertas para aparecerem aqui.',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'MENOR PREÇO DO DIA 🔥',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        destaque.nome,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 23,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        destaque.mercado,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Text(
-                          'R\$ ${_formatarPreco(destaque.preco)}',
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'OFERTA DO DIA 🔥',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Cadastre ofertas para aparecerem aqui.',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            )
+                : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'MENOR PREÇO DO DIA 🔥',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  destaque.nome,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  destaque.mercado,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Text(
+                    'R\$ ${_formatarPreco(destaque.preco)}',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 12),
           Container(
@@ -396,73 +418,73 @@ class _OfertasPageState extends State<OfertasPage> {
             ),
             child: destaque != null && destaque.imagemUrl.isNotEmpty
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          destaque.imagemUrl,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.shopping_basket,
-                              color: Colors.white,
-                              size: 46,
-                            );
-                          },
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    destaque.imagemUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
                         ),
-
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.45),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        Positioned(
-                          left: 8,
-                          bottom: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'TOP',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : const Icon(
-                    Icons.shopping_basket,
-                    color: Colors.white,
-                    size: 46,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.shopping_basket,
+                        color: Colors.white,
+                        size: 46,
+                      );
+                    },
                   ),
+
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.45),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  Positioned(
+                    left: 8,
+                    bottom: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'TOP',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : const Icon(
+              Icons.shopping_basket,
+              color: Colors.white,
+              size: 46,
+            ),
           ),
         ],
       ),
@@ -559,6 +581,35 @@ class _OfertasPageState extends State<OfertasPage> {
                     ),
                   ),
                 ),
+                if (produto.endereco.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: GestureDetector(
+                      onTap: () {
+                        _abrirMapa(produto.endereco);
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.blue,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Como chegar',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (menorPreco)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -597,39 +648,39 @@ class _OfertasPageState extends State<OfertasPage> {
                 ),
                 child: produto.imagemUrl.isNotEmpty
                     ? Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: Image.network(
-                              produto.imagemUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 46,
-                                    color: Colors.green,
-                                  ),
-                                );
-                              },
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.network(
+                        produto.imagemUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        loadingBuilder:
+                            (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              size: 46,
+                              color: Colors.green,
                             ),
-                          ),
-                        ],
-                      )
-                    : const Icon(
-                        Icons.workspace_premium,
-                        size: 46,
-                        color: Colors.green,
+                          );
+                        },
                       ),
+                    ),
+                  ],
+                )
+                    : const Icon(
+                  Icons.workspace_premium,
+                  size: 46,
+                  color: Colors.green,
+                ),
               ),
               Expanded(
                 child: Padding(
@@ -709,7 +760,8 @@ class _OfertasPageState extends State<OfertasPage> {
                           Expanded(
                             child: Text(
                               menorPreco
-                                  ? 'Melhor preço encontrado\n${_formatarValidade(produto)}'
+                                  ? 'Melhor preço encontrado\n${_formatarValidade(
+                                  produto)}'
                                   : _formatarValidade(produto),
                               style: TextStyle(
                                 fontSize: 11,

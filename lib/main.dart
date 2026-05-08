@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'produt.dart';
 import 'ofertas_page.dart';
 import 'app_navigation.dart';
+import 'mercado.dart';
 
 void main() {
   runApp(const CompraCertaApp());
@@ -39,6 +40,13 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _mercadoController = TextEditingController();
   final TextEditingController _imagemController = TextEditingController();
   final TextEditingController _buscaController = TextEditingController();
+  final TextEditingController _enderecoController = TextEditingController();
+  final TextEditingController _nomeMercadoController = TextEditingController();
+  final TextEditingController _enderecoMercadoController =
+      TextEditingController();
+  final TextEditingController _logoMercadoController = TextEditingController();
+  final TextEditingController _telefoneMercadoController =
+      TextEditingController();
 
   final List<String> _categorias = [
     'Geral',
@@ -61,11 +69,13 @@ class _HomePageState extends State<HomePage> {
   bool _ehRelampago = false;
   TimeOfDay? _horaInicioRelampago;
   TimeOfDay? _horaFimRelampago;
+  Mercado? _mercadoAtual;
 
   @override
   void initState() {
     super.initState();
     _carregarProdutos();
+    _carregarMercado();
   }
 
   @override
@@ -74,7 +84,12 @@ class _HomePageState extends State<HomePage> {
     _precoController.dispose();
     _mercadoController.dispose();
     _imagemController.dispose();
+    _enderecoController.dispose();
     _buscaController.dispose();
+    _nomeMercadoController.dispose();
+    _enderecoMercadoController.dispose();
+    _logoMercadoController.dispose();
+    _telefoneMercadoController.dispose();
     super.dispose();
   }
 
@@ -162,6 +177,28 @@ class _HomePageState extends State<HomePage> {
     await prefs.setStringList('produtos', listaJson);
   }
 
+  void _carregarMercado() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mercadoJson = prefs.getString('mercado_atual');
+
+    if (mercadoJson == null) return;
+
+    setState(() {
+      _mercadoAtual = Mercado.fromMap(jsonDecode(mercadoJson));
+    });
+  }
+
+  void _salvarMercado(Mercado mercado) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mercado_atual', jsonEncode(mercado.toMap()));
+
+    setState(() {
+      _mercadoAtual = mercado;
+    });
+
+    _mostrarMensagem('Mercado cadastrado com sucesso.');
+  }
+
   void _carregarProdutos() async {
     final prefs = await SharedPreferences.getInstance();
     final List<String>? listaSalva = prefs.getStringList('produtos');
@@ -173,26 +210,26 @@ class _HomePageState extends State<HomePage> {
         _produtos = listaSalva
             .map((item) => Produto.fromMap(jsonDecode(item)))
             .where((produto) {
-          // mantém se NÃO for oferta
-          if (!produto.ehOferta) return true;
+              // mantém se NÃO for oferta
+              if (!produto.ehOferta) return true;
 
-          if (produto.ehRelampago) {
-            return produto.fimProgramado != null &&
-                produto.fimProgramado!.isAfter(agora);
-          }
+              if (produto.ehRelampago) {
+                return produto.fimProgramado != null &&
+                    produto.fimProgramado!.isAfter(agora);
+              }
 
-          // mantém se for "enquanto durar"
-          if (produto.enquantoDurar) return true;
+              // mantém se for "enquanto durar"
+              if (produto.enquantoDurar) return true;
 
-          // mantém se ainda não venceu
-          if (produto.validade != null &&
-              produto.validade!.isAfter(agora)) {
-            return true;
-          }
+              // mantém se ainda não venceu
+              if (produto.validade != null &&
+                  produto.validade!.isAfter(agora)) {
+                return true;
+              }
 
-          // se chegou aqui, remove
-          return false;
-        })
+              // se chegou aqui, remove
+              return false;
+            })
             .toList();
 
         _ordenarProdutos();
@@ -278,7 +315,8 @@ class _HomePageState extends State<HomePage> {
           preco: preco,
           comprado: false,
           categoria: _categoriaSelecionada,
-          mercado: mercadoTexto.isEmpty ? 'Sem mercado' : mercadoTexto,
+          mercado: _mercadoAtual?.nome ?? 'Sem mercado',
+          endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
           ehOferta: _ehOferta,
           enquantoDurar: _enquantoDurar,
           validade: validade,
@@ -313,6 +351,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _toggleProduto(int index) {
+    if (_mercadoAtual == null) {
+      _mostrarMensagem(
+        'Cadastre o mercado antes de publicar ofertas.',
+        corFundo: Colors.red,
+      );
+      return;
+    }
     setState(() {
       _produtos[index].comprado = !_produtos[index].comprado;
     });
@@ -504,8 +549,7 @@ class _HomePageState extends State<HomePage> {
                                     child: Text(
                                       _horaInicioRelampago == null
                                           ? 'Início'
-                                          : 'Início: ${_horaInicioRelampago!
-                                          .format(context)}',
+                                          : 'Início: ${_horaInicioRelampago!.format(context)}',
                                     ),
                                   ),
                                 ),
@@ -527,8 +571,7 @@ class _HomePageState extends State<HomePage> {
                                     child: Text(
                                       _horaFimRelampago == null
                                           ? 'Fim'
-                                          : 'Fim: ${_horaFimRelampago!.format(
-                                          context)}',
+                                          : 'Fim: ${_horaFimRelampago!.format(context)}',
                                     ),
                                   ),
                                 ),
@@ -556,8 +599,7 @@ class _HomePageState extends State<HomePage> {
                                   child: Text(
                                     _horaInicioRelampago == null
                                         ? 'Início'
-                                        : 'Início: ${_horaInicioRelampago!
-                                        .format(context)}',
+                                        : 'Início: ${_horaInicioRelampago!.format(context)}',
                                   ),
                                 ),
                               ),
@@ -579,8 +621,7 @@ class _HomePageState extends State<HomePage> {
                                   child: Text(
                                     _horaFimRelampago == null
                                         ? 'Fim'
-                                        : 'Fim: ${_horaFimRelampago!.format(
-                                        context)}',
+                                        : 'Fim: ${_horaFimRelampago!.format(context)}',
                                   ),
                                 ),
                               ),
@@ -613,12 +654,11 @@ class _HomePageState extends State<HomePage> {
                             },
                             items: [1, 2, 3, 5, 7]
                                 .map(
-                                  (dias) =>
-                                  DropdownMenuItem(
+                                  (dias) => DropdownMenuItem(
                                     value: dias,
                                     child: Text('$dias dias'),
                                   ),
-                            )
+                                )
                                 .toList(),
                           ),
                       ],
@@ -775,6 +815,91 @@ class _HomePageState extends State<HomePage> {
                 _salvarProdutos();
                 Navigator.of(context).pop();
                 _mostrarMensagem('Produto atualizado com sucesso.');
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _abrirCadastroMercado() {
+    _nomeMercadoController.text = _mercadoAtual?.nome ?? '';
+    _enderecoMercadoController.text = _mercadoAtual?.endereco ?? '';
+    _logoMercadoController.text = _mercadoAtual?.logoUrl ?? '';
+    _telefoneMercadoController.text = _mercadoAtual?.telefone ?? '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cadastro do mercado'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _nomeMercadoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do mercado',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _enderecoMercadoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Endereço do mercado',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _logoMercadoController,
+                  decoration: const InputDecoration(
+                    labelText: 'URL da logo ou fachada',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _telefoneMercadoController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Telefone / WhatsApp',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final nome = _nomeMercadoController.text.trim();
+                final endereco = _enderecoMercadoController.text.trim();
+                final logo = _logoMercadoController.text.trim();
+                final telefone = _telefoneMercadoController.text.trim();
+
+                if (nome.isEmpty || endereco.isEmpty) {
+                  _mostrarMensagem(
+                    'Preencha nome e endereço do mercado.',
+                    corFundo: Colors.red,
+                  );
+                  return;
+                }
+
+                _salvarMercado(
+                  Mercado(
+                    nome: nome,
+                    endereco: endereco,
+                    logoUrl: logo,
+                    telefone: telefone,
+                  ),
+                );
+
+                Navigator.of(context).pop();
               },
               child: const Text('Salvar'),
             ),
@@ -1034,10 +1159,10 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: produto.comprado
                           ? const Icon(
-                        Icons.check,
-                        size: 18,
-                        color: Colors.white,
-                      )
+                              Icons.check,
+                              size: 18,
+                              color: Colors.white,
+                            )
                           : null,
                     ),
                   ),
@@ -1089,11 +1214,7 @@ class _HomePageState extends State<HomePage> {
                             produto.enquantoDurar
                                 ? 'Enquanto durar o estoque'
                                 : produto.validade != null
-                                ? 'Válido até ${produto.validade!
-                                .day
-                                .toString()
-                                .padLeft(2, '0')}/${produto.validade!.month
-                                .toString().padLeft(2, '0')}'
+                                ? 'Válido até ${produto.validade!.day.toString().padLeft(2, '0')}/${produto.validade!.month.toString().padLeft(2, '0')}'
                                 : '',
                             style: const TextStyle(
                               fontSize: 11,
@@ -1120,7 +1241,7 @@ class _HomePageState extends State<HomePage> {
 
       final bateBusca =
           produto.nome.toLowerCase().contains(textoBusca) ||
-              produto.mercado.toLowerCase().contains(textoBusca);
+          produto.mercado.toLowerCase().contains(textoBusca);
 
       final bateCategoria =
           _categoriaFiltro == 'Todos' || produto.categoria == _categoriaFiltro;
@@ -1148,12 +1269,10 @@ class _HomePageState extends State<HomePage> {
         .toList();
 
     final totalItens = _produtos.length;
-    final itensPendentes = _produtos
-        .where((p) => !p.comprado)
-        .length;
+    final itensPendentes = _produtos.where((p) => !p.comprado).length;
     final valorTotal = _produtos.fold<double>(
       0,
-          (total, produto) => total + produto.preco,
+      (total, produto) => total + produto.preco,
     );
 
     int contadorAnimacao = 0;
@@ -1168,6 +1287,11 @@ class _HomePageState extends State<HomePage> {
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            onPressed: _abrirCadastroMercado,
+            icon: const Icon(Icons.store),
+            tooltip: 'Cadastrar mercado',
+          ),
           IconButton(
             onPressed: _alternarBusca,
             icon: Icon(_mostrarBusca ? Icons.close : Icons.search),
@@ -1185,9 +1309,8 @@ class _HomePageState extends State<HomePage> {
         children: [
           Column(
             children: [
-
               /// ===== ETAPA 1 =====
-              if (_etapaCadastro == 1) ...[
+              if (_mostrarFormularioCadastro && _etapaCadastro == 1) ...[
                 Row(
                   children: [
                     Expanded(
@@ -1224,6 +1347,25 @@ class _HomePageState extends State<HomePage> {
                 TextField(
                   controller: _imagemController,
                   decoration: _input('URL da imagem...'),
+                ),
+
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _enderecoController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    hintText: 'Endereço do mercado...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 15),
@@ -1377,9 +1519,9 @@ class _HomePageState extends State<HomePage> {
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _busca.isNotEmpty
                       ? IconButton(
-                    onPressed: _limparBusca,
-                    icon: const Icon(Icons.clear),
-                  )
+                          onPressed: _limparBusca,
+                          icon: const Icon(Icons.clear),
+                        )
                       : null,
                   filled: true,
                   fillColor: Colors.white,
@@ -1397,69 +1539,59 @@ class _HomePageState extends State<HomePage> {
           Expanded(
             child: produtosFiltrados.isEmpty
                 ? Center(
-              child: Text(
-                _produtos.isEmpty
-                    ? 'Nenhum produto ainda'
-                    : 'Nenhum produto encontrado',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            )
+                    child: Text(
+                      _produtos.isEmpty
+                          ? 'Nenhum produto ainda'
+                          : 'Nenhum produto encontrado',
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
                 : ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                if (maisBaratos.isNotEmpty) ...[
-                  _buildCabecalhoSecao('Mais baratos'),
-                  ...maisBaratos.map((produto) {
-                    final indiceReal = _produtos.indexOf(produto);
-                    final widget = _buildCardProduto(
-                      produto,
-                      indiceReal,
-                      contadorAnimacao,
-                    );
-                    contadorAnimacao++;
-                    return widget;
-                  }),
-                ],
-                if (outrosProdutos.isNotEmpty) ...[
-                  _buildCabecalhoSecao('Outros produtos'),
-                  ...outrosProdutos.map((produto) {
-                    final indiceReal = _produtos.indexOf(produto);
-                    final widget = _buildCardProduto(
-                      produto,
-                      indiceReal,
-                      contadorAnimacao,
-                    );
-                    contadorAnimacao++;
-                    return widget;
-                  }),
-                ],
-              ],
-            ),
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      if (maisBaratos.isNotEmpty) ...[
+                        _buildCabecalhoSecao('Mais baratos'),
+                        ...maisBaratos.map((produto) {
+                          final indiceReal = _produtos.indexOf(produto);
+                          final widget = _buildCardProduto(
+                            produto,
+                            indiceReal,
+                            contadorAnimacao,
+                          );
+                          contadorAnimacao++;
+                          return widget;
+                        }),
+                      ],
+                      if (outrosProdutos.isNotEmpty) ...[
+                        _buildCabecalhoSecao('Outros produtos'),
+                        ...outrosProdutos.map((produto) {
+                          final indiceReal = _produtos.indexOf(produto);
+                          final widget = _buildCardProduto(
+                            produto,
+                            indiceReal,
+                            contadorAnimacao,
+                          );
+                          contadorAnimacao++;
+                          return widget;
+                        }),
+                      ],
+                    ],
+                  ),
           ),
         ],
       ),
-      floatingActionButton: _mostrarFormularioCadastro && _etapaCadastro == 1
-          ? FloatingActionButton(
+      floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
         onPressed: () {
           setState(() {
-            _mostrarFormularioCadastro = false;
+            _mostrarFormularioCadastro = !_mostrarFormularioCadastro;
+            if (_mostrarFormularioCadastro) {
+              _etapaCadastro = 1;
+            }
           });
         },
-        child: const Icon(Icons.close),
-      )
-          : !_mostrarFormularioCadastro
-          ? FloatingActionButton(
-        backgroundColor: Colors.green,
-        onPressed: () {
-          setState(() {
-            _mostrarFormularioCadastro = true;
-            _etapaCadastro = 1;
-          });
-        },
-        child: const Icon(Icons.add),
-      )
-          : null,
+        child: Icon(_mostrarFormularioCadastro ? Icons.close : Icons.add),
+      ),
     );
   }
 }

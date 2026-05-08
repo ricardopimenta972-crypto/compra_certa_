@@ -4,6 +4,7 @@ class Produto {
   bool comprado;
   String categoria;
   String mercado;
+  String endereco;
   bool ehOferta;
   bool enquantoDurar;
   DateTime? validade;
@@ -11,9 +12,12 @@ class Produto {
   DateTime? inicioProgramado;
   DateTime? fimProgramado;
   bool ehRelampago;
+  double? latitude;
+  double? longitude;
 
   Produto({
     required this.nome,
+    required this.endereco,
     required this.preco,
     this.comprado = false,
     this.categoria = 'Geral',
@@ -25,11 +29,16 @@ class Produto {
     this.inicioProgramado,
     this.fimProgramado,
     this.ehRelampago = false,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'nome': nome,
+      'endereco': endereco,
+      'latitude': latitude,
+      'longitude': longitude,
       'preco': preco,
       'comprado': comprado,
       'categoria': categoria,
@@ -47,6 +56,9 @@ class Produto {
   factory Produto.fromMap(Map<String, dynamic> map) {
     return Produto(
       nome: map['nome'] ?? '',
+      endereco: map['endereco'] ?? 'Endereço não informado',
+      latitude: map['latitude'],
+      longitude: map['longitude'],
       preco: (map['preco'] ?? 0).toDouble(),
       comprado: map['comprado'] ?? false,
       categoria: map['categoria'] ?? 'Geral',
