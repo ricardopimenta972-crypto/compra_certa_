@@ -408,6 +408,7 @@ class _HomePageState extends State<HomePage> {
           enquantoDurar: _enquantoDurar,
           validade: validade,
           imagemUrl: imagemTexto,
+          logoMercadoUrl: _mercadoAtual?.logoUrl ?? '',
           ehRelampago: _ehRelampago,
           inicioProgramado: inicioRelampago,
           fimProgramado: fimRelampago,
@@ -1122,11 +1123,37 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                TextField(
-                  controller: _logoMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'URL da logo ou fachada',
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final imagem = await escolherImagemDoDispositivo();
+
+                        if (imagem != null) {
+                          setState(() {
+                            _logoMercadoController.text = imagem;
+                          });
+                        }
+                      },
+
+                      icon: const Icon(Icons.photo_camera),
+
+                      label: const Text('Selecionar logo/fachada'),
+                    ),
+
+                    if (_logoMercadoController.text.isNotEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Imagem selecionada com sucesso.',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -1751,8 +1778,8 @@ class _HomePageState extends State<HomePage> {
                           child: Image.file(
                             File(_imagemController.text),
 
-                            height: 140,
-                            width: double.infinity,
+                            height: 126,
+                            width: 126,
                             fit: BoxFit.cover,
                           ),
                         ),

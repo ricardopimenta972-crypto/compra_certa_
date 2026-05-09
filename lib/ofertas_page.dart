@@ -606,18 +606,16 @@ class _OfertasPageState extends State<OfertasPage> {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.green.shade100,
-                  child: const Icon(Icons.store, color: Colors.green, size: 20),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    produto.mercado,
-                    style: const TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  child: produto.logoMercadoUrl.isNotEmpty
+                      ? ClipOval(
+                          child: _imagemDaOferta(
+                            produto.logoMercadoUrl,
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : const Icon(Icons.store, color: Colors.green, size: 20),
                 ),
                 if (produto.endereco.isNotEmpty)
                   Padding(

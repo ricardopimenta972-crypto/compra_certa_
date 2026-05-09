@@ -9,6 +9,7 @@ class Produto {
   bool enquantoDurar;
   DateTime? validade;
   String imagemUrl;
+  String logoMercadoUrl;
   DateTime? inicioProgramado;
   DateTime? fimProgramado;
   bool ehRelampago;
@@ -26,6 +27,7 @@ class Produto {
     this.enquantoDurar = false,
     this.validade,
     this.imagemUrl = '',
+    this.logoMercadoUrl = '',
     this.inicioProgramado,
     this.fimProgramado,
     this.ehRelampago = false,
@@ -45,6 +47,7 @@ class Produto {
       'enquantoDurar': enquantoDurar,
       'validade': validade?.millisecondsSinceEpoch,
       'imagemUrl': imagemUrl,
+      'logoMercadoUrl': logoMercadoUrl,
       'inicioProgramado': inicioProgramado?.millisecondsSinceEpoch,
       'fimProgramado': fimProgramado?.millisecondsSinceEpoch,
       'ehRelampago': ehRelampago,
@@ -67,6 +70,7 @@ class Produto {
           ? DateTime.fromMillisecondsSinceEpoch(map['validade'])
           : null,
       imagemUrl: map['imagemUrl'] ?? '',
+      logoMercadoUrl: map['logoMercadoUrl'] ?? '',
       inicioProgramado: map['inicioProgramado'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['inicioProgramado'])
           : null,
