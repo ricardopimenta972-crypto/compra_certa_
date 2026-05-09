@@ -41,7 +41,6 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _mercadoController = TextEditingController();
   final TextEditingController _imagemController = TextEditingController();
   final TextEditingController _buscaController = TextEditingController();
-  final TextEditingController _enderecoController = TextEditingController();
   final TextEditingController _nomeMercadoController = TextEditingController();
   final TextEditingController _enderecoMercadoController =
       TextEditingController();
@@ -90,7 +89,6 @@ class _HomePageState extends State<HomePage> {
     _precoController.dispose();
     _mercadoController.dispose();
     _imagemController.dispose();
-    _enderecoController.dispose();
     _buscaController.dispose();
     _nomeMercadoController.dispose();
     _enderecoMercadoController.dispose();
@@ -910,22 +908,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                TextField(
-                  controller: _latitudeMercadoController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Latitude do mercado',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _longitudeMercadoController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Longitude do mercado',
-                  ),
-                ),
-                const SizedBox(height: 14),
 
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -1513,25 +1495,6 @@ class _HomePageState extends State<HomePage> {
                 TextField(
                   controller: _imagemController,
                   decoration: _input('URL da imagem...'),
-                ),
-
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _enderecoController,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    hintText: 'Endereço do mercado...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 15),
