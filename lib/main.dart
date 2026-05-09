@@ -861,6 +861,185 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _abrirGerenciadorMercados() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Mercados cadastrados'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: _mercados.isEmpty
+                    ? const Text('Nenhum mercado cadastrado ainda.')
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _mercados.length,
+                        separatorBuilder: (_, __) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final mercado = _mercados[index];
+                          final selecionado =
+                              _mercadoAtual?.nome == mercado.nome;
+
+                          return ListTile(
+                            leading: Icon(
+                              selecionado ? Icons.check_circle : Icons.store,
+                              color: selecionado ? Colors.green : Colors.grey,
+                            ),
+                            title: Text(
+                              mercado.nome,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              mercado.endereco.isEmpty
+                                  ? 'Sem endereço informado'
+                                  : mercado.endereco,
+                            ),
+                            onTap: () async {
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+
+                              await prefs.setString(
+                                'mercado_atual',
+                                jsonEncode(mercado.toMap()),
+                              );
+
+                              setState(() {
+                                _mercadoAtual = mercado;
+                              });
+
+                              Navigator.of(context).pop();
+
+                              _mostrarMensagem(
+                                'Mercado ativo: ${mercado.nome}',
+                              );
+                            },
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.blue,
+                                  ),
+                                  tooltip: 'Editar mercado',
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+
+                                    setState(() {
+                                      _mercadoAtual = mercado;
+                                    });
+
+                                    _abrirCadastroMercado();
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  tooltip: 'Excluir mercado',
+                                  onPressed: () async {
+                                    final confirmar = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: const Text('Excluir mercado'),
+                                          content: Text(
+                                            'Deseja excluir "${mercado.nome}"?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(
+                                                context,
+                                              ).pop(false),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                              ),
+                                              onPressed: () => Navigator.of(
+                                                context,
+                                              ).pop(true),
+                                              child: const Text('Excluir'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+
+                                    if (confirmar != true) return;
+
+                                    setState(() {
+                                      _mercados.removeAt(index);
+
+                                      if (_mercadoAtual?.nome == mercado.nome) {
+                                        _mercadoAtual = _mercados.isNotEmpty
+                                            ? _mercados.first
+                                            : null;
+                                      }
+                                    });
+
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+
+                                    await prefs.setStringList(
+                                      'mercados',
+                                      _mercados
+                                          .map(
+                                            (item) => jsonEncode(item.toMap()),
+                                          )
+                                          .toList(),
+                                    );
+
+                                    if (_mercadoAtual != null) {
+                                      await prefs.setString(
+                                        'mercado_atual',
+                                        jsonEncode(_mercadoAtual!.toMap()),
+                                      );
+                                    } else {
+                                      await prefs.remove('mercado_atual');
+                                    }
+
+                                    setStateDialog(() {});
+
+                                    _mostrarMensagem(
+                                      'Mercado excluído.',
+                                      corFundo: Colors.red,
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fechar'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _abrirCadastroMercado();
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Novo mercado'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _abrirCadastroMercado() {
     _nomeMercadoController.text = _mercadoAtual?.nome ?? '';
     _enderecoMercadoController.text = _mercadoAtual?.endereco ?? '';
@@ -987,7 +1166,7 @@ class _HomePageState extends State<HomePage> {
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
         child: ElevatedButton.icon(
-          onPressed: _abrirCadastroMercado,
+          onPressed: _abrirGerenciadorMercados,
           icon: const Icon(Icons.store),
           label: const Text('Cadastrar mercado'),
         ),
@@ -1438,7 +1617,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             onPressed: _abrirCadastroMercado,
             icon: const Icon(Icons.store),
-            tooltip: 'Cadastrar mercado',
+            tooltip: 'Mercados cadastrados',
           ),
           IconButton(
             onPressed: _alternarBusca,
