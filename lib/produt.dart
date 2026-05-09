@@ -17,12 +17,12 @@ class Produto {
 
   Produto({
     required this.nome,
-    required this.endereco,
     required this.preco,
     this.comprado = false,
     this.categoria = 'Geral',
     this.mercado = 'Sem mercado',
-    this.ehOferta = false,
+    this.endereco = 'Endereço não informado',
+    this.ehOferta = true,
     this.enquantoDurar = false,
     this.validade,
     this.imagemUrl = '',
@@ -36,13 +36,11 @@ class Produto {
   Map<String, dynamic> toMap() {
     return {
       'nome': nome,
-      'endereco': endereco,
-      'latitude': latitude,
-      'longitude': longitude,
       'preco': preco,
       'comprado': comprado,
       'categoria': categoria,
       'mercado': mercado,
+      'endereco': endereco,
       'ehOferta': ehOferta,
       'enquantoDurar': enquantoDurar,
       'validade': validade?.millisecondsSinceEpoch,
@@ -50,20 +48,20 @@ class Produto {
       'inicioProgramado': inicioProgramado?.millisecondsSinceEpoch,
       'fimProgramado': fimProgramado?.millisecondsSinceEpoch,
       'ehRelampago': ehRelampago,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
   factory Produto.fromMap(Map<String, dynamic> map) {
     return Produto(
       nome: map['nome'] ?? '',
-      endereco: map['endereco'] ?? 'Endereço não informado',
-      latitude: map['latitude'],
-      longitude: map['longitude'],
       preco: (map['preco'] ?? 0).toDouble(),
       comprado: map['comprado'] ?? false,
       categoria: map['categoria'] ?? 'Geral',
       mercado: map['mercado'] ?? 'Sem mercado',
-      ehOferta: map['ehOferta'] ?? false,
+      endereco: map['endereco'] ?? 'Endereço não informado',
+      ehOferta: map['ehOferta'] ?? true,
       enquantoDurar: map['enquantoDurar'] ?? false,
       validade: map['validade'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['validade'])
@@ -76,6 +74,12 @@ class Produto {
           ? DateTime.fromMillisecondsSinceEpoch(map['fimProgramado'])
           : null,
       ehRelampago: map['ehRelampago'] ?? false,
+      latitude: map['latitude'] != null
+          ? (map['latitude'] as num).toDouble()
+          : null,
+      longitude: map['longitude'] != null
+          ? (map['longitude'] as num).toDouble()
+          : null,
     );
   }
 

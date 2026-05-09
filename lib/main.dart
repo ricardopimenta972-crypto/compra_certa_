@@ -5,6 +5,7 @@ import 'produt.dart';
 import 'ofertas_page.dart';
 import 'app_navigation.dart';
 import 'mercado.dart';
+import 'selecionar_localizacao_page.dart';
 
 void main() {
   runApp(const CompraCertaApp());
@@ -46,6 +47,10 @@ class _HomePageState extends State<HomePage> {
       TextEditingController();
   final TextEditingController _logoMercadoController = TextEditingController();
   final TextEditingController _telefoneMercadoController =
+      TextEditingController();
+  final TextEditingController _latitudeMercadoController =
+      TextEditingController();
+  final TextEditingController _longitudeMercadoController =
       TextEditingController();
 
   final List<String> _categorias = [
@@ -90,6 +95,8 @@ class _HomePageState extends State<HomePage> {
     _enderecoMercadoController.dispose();
     _logoMercadoController.dispose();
     _telefoneMercadoController.dispose();
+    _latitudeMercadoController.dispose();
+    _longitudeMercadoController.dispose();
     super.dispose();
   }
 
@@ -317,6 +324,8 @@ class _HomePageState extends State<HomePage> {
           categoria: _categoriaSelecionada,
           mercado: _mercadoAtual?.nome ?? 'Sem mercado',
           endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
+          latitude: _mercadoAtual?.latitude,
+          longitude: _mercadoAtual?.longitude,
           ehOferta: _ehOferta,
           enquantoDurar: _enquantoDurar,
           validade: validade,
@@ -829,6 +838,9 @@ class _HomePageState extends State<HomePage> {
     _enderecoMercadoController.text = _mercadoAtual?.endereco ?? '';
     _logoMercadoController.text = _mercadoAtual?.logoUrl ?? '';
     _telefoneMercadoController.text = _mercadoAtual?.telefone ?? '';
+    _latitudeMercadoController.text = _mercadoAtual?.latitude?.toString() ?? '';
+    _longitudeMercadoController.text =
+        _mercadoAtual?.longitude?.toString() ?? '';
 
     showDialog(
       context: context,
@@ -867,6 +879,46 @@ class _HomePageState extends State<HomePage> {
                     labelText: 'Telefone / WhatsApp',
                   ),
                 ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _latitudeMercadoController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Latitude do mercado',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _longitudeMercadoController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Longitude do mercado',
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final resultado = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SelecionarLocalizacaoPage(),
+                      ),
+                    );
+
+                    if (resultado != null) {
+                      _latitudeMercadoController.text = resultado.latitude
+                          .toString();
+
+                      _longitudeMercadoController.text = resultado.longitude
+                          .toString();
+
+                      _mostrarMensagem('Localização selecionada com sucesso.');
+                    }
+                  },
+                  icon: const Icon(Icons.map),
+                  label: const Text('Selecionar no mapa'),
+                ),
               ],
             ),
           ),
@@ -881,6 +933,13 @@ class _HomePageState extends State<HomePage> {
                 final endereco = _enderecoMercadoController.text.trim();
                 final logo = _logoMercadoController.text.trim();
                 final telefone = _telefoneMercadoController.text.trim();
+                final latitude = double.tryParse(
+                  _latitudeMercadoController.text.trim().replaceAll(',', '.'),
+                );
+
+                final longitude = double.tryParse(
+                  _longitudeMercadoController.text.trim().replaceAll(',', '.'),
+                );
 
                 if (nome.isEmpty || endereco.isEmpty) {
                   _mostrarMensagem(
@@ -896,6 +955,8 @@ class _HomePageState extends State<HomePage> {
                     endereco: endereco,
                     logoUrl: logo,
                     telefone: telefone,
+                    latitude: latitude,
+                    longitude: longitude,
                   ),
                 );
 
