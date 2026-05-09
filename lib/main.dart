@@ -75,6 +75,7 @@ class _HomePageState extends State<HomePage> {
   TimeOfDay? _horaInicioRelampago;
   TimeOfDay? _horaFimRelampago;
   Mercado? _mercadoAtual;
+  List<Mercado> _mercados = [];
 
   @override
   void initState() {
@@ -186,24 +187,53 @@ class _HomePageState extends State<HomePage> {
 
   void _carregarMercado() async {
     final prefs = await SharedPreferences.getInstance();
-    final mercadoJson = prefs.getString('mercado_atual');
 
-    if (mercadoJson == null) return;
+    final mercadoJson = prefs.getString('mercado_atual');
+    final listaMercadosJson = prefs.getStringList('mercados');
+
+    final mercadosCarregados =
+        listaMercadosJson
+            ?.map((item) => Mercado.fromMap(jsonDecode(item)))
+            .toList() ??
+        [];
 
     setState(() {
-      _mercadoAtual = Mercado.fromMap(jsonDecode(mercadoJson));
+      _mercados = mercadosCarregados;
+
+      if (mercadoJson != null) {
+        _mercadoAtual = Mercado.fromMap(jsonDecode(mercadoJson));
+      } else if (_mercados.isNotEmpty) {
+        _mercadoAtual = _mercados.first;
+      }
     });
   }
 
   void _salvarMercado(Mercado mercado) async {
     final prefs = await SharedPreferences.getInstance();
+
+    final indiceExistente = _mercados.indexWhere(
+      (item) =>
+          item.nome.trim().toLowerCase() == mercado.nome.trim().toLowerCase(),
+    );
+
+    if (indiceExistente >= 0) {
+      _mercados[indiceExistente] = mercado;
+    } else {
+      _mercados.add(mercado);
+    }
+
+    await prefs.setStringList(
+      'mercados',
+      _mercados.map((item) => jsonEncode(item.toMap())).toList(),
+    );
+
     await prefs.setString('mercado_atual', jsonEncode(mercado.toMap()));
 
     setState(() {
       _mercadoAtual = mercado;
     });
 
-    _mostrarMensagem('Mercado cadastrado com sucesso.');
+    _mostrarMensagem('Mercado salvo e selecionado com sucesso.');
   }
 
   void _carregarProdutos() async {
@@ -970,6 +1000,81 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildMercadoAtivoCard() {
+    if (_mercados.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child: ElevatedButton.icon(
+          onPressed: _abrirCadastroMercado,
+          icon: const Icon(Icons.store),
+          label: const Text('Cadastrar mercado'),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.green.shade200),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.store, color: Colors.green),
+            const SizedBox(width: 10),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _mercadoAtual?.nome,
+                  isExpanded: true,
+                  items: _mercados.map((mercado) {
+                    return DropdownMenuItem<String>(
+                      value: mercado.nome,
+                      child: Text(
+                        mercado.nome,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (nomeSelecionado) async {
+                    if (nomeSelecionado == null) return;
+
+                    final mercadoSelecionado = _mercados.firstWhere(
+                      (mercado) => mercado.nome == nomeSelecionado,
+                    );
+
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString(
+                      'mercado_atual',
+                      jsonEncode(mercadoSelecionado.toMap()),
+                    );
+
+                    setState(() {
+                      _mercadoAtual = mercadoSelecionado;
+                    });
+
+                    _mostrarMensagem(
+                      'Mercado ativo: ${mercadoSelecionado.nome}',
+                    );
+                  },
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: _abrirCadastroMercado,
+              icon: const Icon(Icons.edit, color: Colors.green),
+              tooltip: 'Editar/Cadastrar mercado',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCabecalhoSecao(String titulo) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -1564,6 +1669,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
 
+          _buildMercadoAtivoCard(),
           _buildFiltroCategorias(),
           if (_mostrarBusca)
             Padding(
