@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -424,24 +425,11 @@ class _OfertasPageState extends State<OfertasPage> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(
+                        _imagemDaOferta(
                           destaque.imagemUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.shopping_basket,
-                              color: Colors.white,
-                              size: 46,
-                            );
-                          },
+                          width: double.infinity,
+                          height: double.infinity,
                         ),
 
                         Container(
@@ -490,6 +478,54 @@ class _OfertasPageState extends State<OfertasPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _imagemDaOferta(
+    String caminho, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    if (caminho.trim().isEmpty) {
+      return const Icon(
+        Icons.image_not_supported,
+        color: Colors.green,
+        size: 46,
+      );
+    }
+
+    final ehImagemDaInternet =
+        caminho.startsWith('http://') || caminho.startsWith('https://');
+
+    if (ehImagemDaInternet) {
+      return Image.network(
+        caminho,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(
+            Icons.image_not_supported,
+            color: Colors.green,
+            size: 46,
+          );
+        },
+      );
+    }
+
+    return Image.file(
+      File(caminho),
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return const Icon(
+          Icons.image_not_supported,
+          color: Colors.green,
+          size: 46,
+        );
+      },
     );
   }
 
@@ -649,27 +685,11 @@ class _OfertasPageState extends State<OfertasPage> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(18),
-                            child: Image.network(
+                            child: _imagemDaOferta(
                               produto.imagemUrl,
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 46,
-                                    color: Colors.green,
-                                  ),
-                                );
-                              },
                             ),
                           ),
                         ],

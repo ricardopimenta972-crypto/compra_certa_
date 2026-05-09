@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'produt.dart';
 import 'ofertas_page.dart';
@@ -75,6 +77,54 @@ class _HomePageState extends State<HomePage> {
   TimeOfDay? _horaFimRelampago;
   Mercado? _mercadoAtual;
   List<Mercado> _mercados = [];
+
+  Future<String?> escolherImagemDoDispositivo() async {
+    final ImagePicker picker = ImagePicker();
+
+    final XFile? imagem = await showModalBottomSheet<XFile?>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Selecionar da galeria'),
+                  onTap: () async {
+                    final XFile? foto = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 75,
+                    );
+
+                    Navigator.pop(context, foto);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Tirar foto'),
+                  onTap: () async {
+                    final XFile? foto = await picker.pickImage(
+                      source: ImageSource.camera,
+                      imageQuality: 75,
+                    );
+
+                    Navigator.pop(context, foto);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    return imagem?.path;
+  }
 
   @override
   void initState() {
@@ -1671,9 +1721,43 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 10),
 
-                TextField(
-                  controller: _imagemController,
-                  decoration: _input('URL da imagem...'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final caminhoImagem =
+                            await escolherImagemDoDispositivo();
+
+                        if (caminhoImagem != null) {
+                          setState(() {
+                            _imagemController.text = caminhoImagem;
+                          });
+                        }
+                      },
+
+                      icon: const Icon(Icons.add_photo_alternate),
+
+                      label: const Text('Selecionar imagem da oferta'),
+                    ),
+
+                    if (_imagemController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+
+                          child: Image.file(
+                            File(_imagemController.text),
+
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
 
                 const SizedBox(height: 15),
