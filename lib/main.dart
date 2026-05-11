@@ -42,6 +42,8 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _precoController = TextEditingController();
   final TextEditingController _mercadoController = TextEditingController();
   final TextEditingController _imagemController = TextEditingController();
+  final TextEditingController _quantidadeMedidaController =
+      TextEditingController(text: '1');
   final TextEditingController _buscaController = TextEditingController();
   final TextEditingController _nomeMercadoController = TextEditingController();
   final TextEditingController _enderecoMercadoController =
@@ -62,9 +64,24 @@ class _HomePageState extends State<HomePage> {
     'Bebidas',
   ];
 
+  final List<String> _unidadesMedida = [
+    'un',
+    'kg',
+    'g',
+    '100g',
+    '500g',
+    'litro',
+    'ml',
+    'pacote',
+    'caixa',
+    'bandeja',
+    'dúzia',
+  ];
+
   List<Produto> _produtos = [];
   String _busca = '';
   String _categoriaSelecionada = 'Geral';
+  String _unidadeSelecionada = 'un';
   String _categoriaFiltro = 'Todos';
   bool _mostrarBusca = false;
   bool _ehOferta = true;
@@ -327,6 +344,10 @@ class _HomePageState extends State<HomePage> {
     final precoTexto = _precoController.text.trim();
     final mercadoTexto = _mercadoController.text.trim();
     final imagemTexto = _imagemController.text.trim();
+    final quantidadeMedidaTexto =
+        _quantidadeMedidaController.text.trim().isEmpty
+        ? '1'
+        : _quantidadeMedidaController.text.trim();
 
     DateTime? validade;
     DateTime? inicioRelampago;
@@ -409,6 +430,8 @@ class _HomePageState extends State<HomePage> {
           validade: validade,
           imagemUrl: imagemTexto,
           logoMercadoUrl: _mercadoAtual?.logoUrl ?? '',
+
+          unidadeMedida: _unidadeSelecionada,
           ehRelampago: _ehRelampago,
           inicioProgramado: inicioRelampago,
           fimProgramado: fimRelampago,
@@ -422,6 +445,8 @@ class _HomePageState extends State<HomePage> {
     _precoController.clear();
     _mercadoController.clear();
     _imagemController.clear();
+    _quantidadeMedidaController.text = '1';
+    _unidadeSelecionada = 'un';
     setState(() {
       _ehOferta = true;
       _enquantoDurar = false;
@@ -1730,6 +1755,41 @@ class _HomePageState extends State<HomePage> {
                         controller: _precoController,
                         keyboardType: TextInputType.number,
                         decoration: _input('R\$'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _quantidadeMedidaController,
+                        keyboardType: TextInputType.number,
+                        decoration: _input('Quantidade'),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _unidadeSelecionada,
+                        decoration: _input('Unidade'),
+                        items: _unidadesMedida.map((unidade) {
+                          return DropdownMenuItem(
+                            value: unidade,
+                            child: Text(unidade),
+                          );
+                        }).toList(),
+                        onChanged: (valor) {
+                          if (valor == null) return;
+
+                          setState(() {
+                            _unidadeSelecionada = valor;
+                          });
+                        },
                       ),
                     ),
                   ],

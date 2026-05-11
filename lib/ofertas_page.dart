@@ -755,7 +755,7 @@ class _OfertasPageState extends State<OfertasPage> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'R\$ ${_formatarPreco(produto.preco)}',
+                        'R\$ ${_formatarPreco(produto.preco)} / ${produto.unidadeMedida}',
                         style: TextStyle(
                           fontSize: menorPreco ? 27 : 25,
                           fontWeight: FontWeight.bold,

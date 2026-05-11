@@ -1,6 +1,8 @@
 class Produto {
   String nome;
   double preco;
+  double quantidade;
+  String unidadeMedida;
   bool comprado;
   String categoria;
   String mercado;
@@ -19,6 +21,8 @@ class Produto {
   Produto({
     required this.nome,
     required this.preco,
+    this.quantidade = 1,
+    this.unidadeMedida = 'un',
     this.comprado = false,
     this.categoria = 'Geral',
     this.mercado = 'Sem mercado',
@@ -39,6 +43,8 @@ class Produto {
     return {
       'nome': nome,
       'preco': preco,
+      'quantidade': quantidade,
+      'unidadeMedida': unidadeMedida,
       'comprado': comprado,
       'categoria': categoria,
       'mercado': mercado,
@@ -60,6 +66,8 @@ class Produto {
     return Produto(
       nome: map['nome'] ?? '',
       preco: (map['preco'] ?? 0).toDouble(),
+      quantidade: (map['quantidade'] ?? 1).toDouble(),
+      unidadeMedida: map['unidadeMedida'] ?? 'un',
       comprado: map['comprado'] ?? false,
       categoria: map['categoria'] ?? 'Geral',
       mercado: map['mercado'] ?? 'Sem mercado',
