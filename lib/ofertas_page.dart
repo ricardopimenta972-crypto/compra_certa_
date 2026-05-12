@@ -41,10 +41,142 @@ class _OfertasPageState extends State<OfertasPage> {
   List<Produto> _ofertas = [];
   String _busca = '';
 
+  String _cidadeSelecionada = 'Goianésia';
+  double _raioSelecionado = 5;
+
+  final List<String> _cidadesDisponiveis = [
+    'Goianésia',
+    'Goiânia',
+    'Anápolis',
+    'Brasília',
+  ];
+
+  final List<double> _raiosDisponiveis = [1, 3, 5, 10, 25];
+
   @override
   void initState() {
     super.initState();
     _carregarOfertas();
+    _carregarPreferenciasLocalizacao();
+  }
+
+  Future<void> _carregarPreferenciasLocalizacao() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      _cidadeSelecionada = prefs.getString('cidadeSelecionada') ?? 'Goianésia';
+      _raioSelecionado = prefs.getDouble('raioSelecionado') ?? 5;
+    });
+  }
+
+  Future<void> _salvarPreferenciasLocalizacao() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString('cidadeSelecionada', _cidadeSelecionada);
+    await prefs.setDouble('raioSelecionado', _raioSelecionado);
+  }
+
+  void _abrirSeletorLocalizacao() {
+    String cidadeTemporaria = _cidadeSelecionada;
+    double raioTemporario = _raioSelecionado;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Selecionar local das ofertas',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    DropdownButtonFormField<String>(
+                      value: cidadeTemporaria,
+                      decoration: const InputDecoration(
+                        labelText: 'Cidade',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _cidadesDisponiveis.map((cidade) {
+                        return DropdownMenuItem(
+                          value: cidade,
+                          child: Text(cidade),
+                        );
+                      }).toList(),
+                      onChanged: (valor) {
+                        if (valor == null) return;
+
+                        setModalState(() {
+                          cidadeTemporaria = valor;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    DropdownButtonFormField<double>(
+                      value: raioTemporario,
+                      decoration: const InputDecoration(
+                        labelText: 'Raio de busca',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _raiosDisponiveis.map((raio) {
+                        return DropdownMenuItem(
+                          value: raio,
+                          child: Text('${raio.toInt()} km'),
+                        );
+                      }).toList(),
+                      onChanged: (valor) {
+                        if (valor == null) return;
+
+                        setModalState(() {
+                          raioTemporario = valor;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          setState(() {
+                            _cidadeSelecionada = cidadeTemporaria;
+                            _raioSelecionado = raioTemporario;
+                          });
+
+                          await _salvarPreferenciasLocalizacao();
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
+                        child: const Text('Aplicar filtros'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -128,7 +260,7 @@ class _OfertasPageState extends State<OfertasPage> {
             final agora = DateTime.now();
 
             if (!produto.ehOferta) return false;
-
+            if (produto.statusOferta != 'ativa') return false;
             if (produto.ehRelampago) {
               if (produto.inicioProgramado == null ||
                   produto.fimProgramado == null) {
@@ -255,27 +387,34 @@ class _OfertasPageState extends State<OfertasPage> {
             ],
           ),
           const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.16),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.location_on, color: Colors.white, size: 20),
-                SizedBox(width: 6),
-                Text(
-                  'Ofertas em Goianésia',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: _abrirSeletorLocalizacao,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.16),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on, color: Colors.white, size: 20),
+
+                  const SizedBox(width: 6),
+
+                  Text(
+                    '$_cidadeSelecionada • ${_raioSelecionado.toInt()} km',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down, color: Colors.white),
-              ],
+
+                  const SizedBox(width: 4),
+
+                  const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                ],
+              ),
             ),
           ),
         ],
@@ -616,6 +755,18 @@ class _OfertasPageState extends State<OfertasPage> {
                           ),
                         )
                       : const Icon(Icons.store, color: Colors.green, size: 20),
+                ),
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Text(
+                    produto.mercado,
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
                 if (produto.endereco.isNotEmpty)
                   Padding(

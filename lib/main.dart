@@ -186,6 +186,18 @@ class _HomePageState extends State<HomePage> {
     return preco.toStringAsFixed(2).replaceAll('.', ',');
   }
 
+  Color _corStatusOferta(String status) {
+    if (status == 'pausada') return Colors.orange;
+    if (status == 'encerrada') return Colors.red;
+    return Colors.green;
+  }
+
+  String _textoStatusOferta(String status) {
+    if (status == 'pausada') return 'Pausada';
+    if (status == 'encerrada') return 'Encerrada';
+    return 'Ativa';
+  }
+
   String _normalizarNome(String nome) {
     return nome.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
@@ -1551,51 +1563,8 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (maisBarato)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Mais barato',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => _toggleProduto(indiceReal),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: produto.comprado
-                            ? Colors.green
-                            : Colors.transparent,
-                        border: Border.all(color: Colors.green),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: produto.comprado
-                          ? const Icon(
-                              Icons.check,
-                              size: 18,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2030,7 +1999,7 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.all(12),
                     children: [
                       if (maisBaratos.isNotEmpty) ...[
-                        _buildCabecalhoSecao('Mais baratos'),
+                        _buildCabecalhoSecao('Ofertas publicadas'),
                         ...maisBaratos.map((produto) {
                           final indiceReal = _produtos.indexOf(produto);
                           final widget = _buildCardProduto(
@@ -2043,7 +2012,7 @@ class _HomePageState extends State<HomePage> {
                         }),
                       ],
                       if (outrosProdutos.isNotEmpty) ...[
-                        _buildCabecalhoSecao('Outros produtos'),
+                        _buildCabecalhoSecao('Oferta ativa'),
                         ...outrosProdutos.map((produto) {
                           final indiceReal = _produtos.indexOf(produto);
                           final widget = _buildCardProduto(

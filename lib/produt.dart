@@ -9,6 +9,7 @@ class Produto {
   String endereco;
   bool ehOferta;
   bool enquantoDurar;
+  String statusOferta;
   DateTime? validade;
   String imagemUrl;
   String logoMercadoUrl;
@@ -29,6 +30,7 @@ class Produto {
     this.endereco = 'Endereço não informado',
     this.ehOferta = true,
     this.enquantoDurar = false,
+    this.statusOferta = 'ativa',
     this.validade,
     this.imagemUrl = '',
     this.logoMercadoUrl = '',
@@ -51,6 +53,7 @@ class Produto {
       'endereco': endereco,
       'ehOferta': ehOferta,
       'enquantoDurar': enquantoDurar,
+      'statusOferta': statusOferta,
       'validade': validade?.millisecondsSinceEpoch,
       'imagemUrl': imagemUrl,
       'logoMercadoUrl': logoMercadoUrl,
@@ -74,6 +77,7 @@ class Produto {
       endereco: map['endereco'] ?? 'Endereço não informado',
       ehOferta: map['ehOferta'] ?? true,
       enquantoDurar: map['enquantoDurar'] ?? false,
+      statusOferta: map['statusOferta'] ?? 'ativa',
       validade: map['validade'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['validade'])
           : null,
