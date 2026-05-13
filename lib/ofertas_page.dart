@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -185,6 +186,75 @@ class _OfertasPageState extends State<OfertasPage> {
     super.dispose();
   }
 
+  Map<String, double>? _coordenadasCidade(String cidade) {
+    switch (cidade) {
+      case 'Goianésia':
+        return {'lat': -15.3175, 'lng': -49.1175};
+      case 'Goiânia':
+        return {'lat': -16.6869, 'lng': -49.2648};
+      case 'Anápolis':
+        return {'lat': -16.3281, 'lng': -48.9530};
+      case 'Brasília':
+        return {'lat': -15.7939, 'lng': -47.8828};
+      default:
+        return null;
+    }
+  }
+
+  double _grausParaRadianos(double graus) {
+    return graus * pi / 180;
+  }
+
+  double _calcularDistanciaKm({
+    required double latOrigem,
+    required double lngOrigem,
+    required double latDestino,
+    required double lngDestino,
+  }) {
+    const raioTerraKm = 6371;
+
+    final dLat = _grausParaRadianos(latDestino - latOrigem);
+    final dLng = _grausParaRadianos(lngDestino - lngOrigem);
+
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(_grausParaRadianos(latOrigem)) *
+            cos(_grausParaRadianos(latDestino)) *
+            sin(dLng / 2) *
+            sin(dLng / 2);
+
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return raioTerraKm * c;
+  }
+
+  double? _distanciaDoProdutoKm(Produto produto) {
+    if (produto.latitude == null || produto.longitude == null) {
+      return null;
+    }
+
+    final coordenadas = _coordenadasCidade(_cidadeSelecionada);
+
+    if (coordenadas == null) {
+      return null;
+    }
+
+    return _calcularDistanciaKm(
+      latOrigem: coordenadas['lat']!,
+      lngOrigem: coordenadas['lng']!,
+      latDestino: produto.latitude!,
+      lngDestino: produto.longitude!,
+    );
+  }
+
+  String _formatarDistancia(double distanciaKm) {
+    if (distanciaKm < 1) {
+      return '${(distanciaKm * 1000).round()} m';
+    }
+
+    return '${distanciaKm.toStringAsFixed(1).replaceAll('.', ',')} km';
+  }
+
   String _formatarPreco(double preco) {
     return preco.toStringAsFixed(2).replaceAll('.', ',');
   }
@@ -301,6 +371,19 @@ class _OfertasPageState extends State<OfertasPage> {
           produto.mercado.toLowerCase().contains(texto) ||
           produto.categoria.toLowerCase().contains(texto);
     }).toList();
+
+    ofertasFiltradas.sort((a, b) {
+      final distanciaA = _distanciaDoProdutoKm(a) ?? 999999;
+      final distanciaB = _distanciaDoProdutoKm(b) ?? 999999;
+
+      final comparacaoDistancia = distanciaA.compareTo(distanciaB);
+
+      if (comparacaoDistancia != 0) {
+        return comparacaoDistancia;
+      }
+
+      return a.preco.compareTo(b.preco);
+    });
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -741,6 +824,7 @@ class _OfertasPageState extends State<OfertasPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
                   radius: 18,
@@ -756,31 +840,31 @@ class _OfertasPageState extends State<OfertasPage> {
                         )
                       : const Icon(Icons.store, color: Colors.green, size: 20),
                 ),
+
                 const SizedBox(width: 10),
 
                 Expanded(
-                  child: Text(
-                    produto.mercado,
-                    style: const TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                if (produto.endereco.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: GestureDetector(
-                      onTap: () {
-                        _abrirMapa(produto);
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.location_on, size: 14, color: Colors.blue),
-                          SizedBox(width: 4),
-                          Text(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        produto.mercado,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+
+                      if (produto.endereco.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () {
+                            _abrirMapa(produto);
+                          },
+                          child: const Text(
                             'Como chegar',
                             style: TextStyle(
                               color: Colors.blue,
@@ -789,10 +873,37 @@ class _OfertasPageState extends State<OfertasPage> {
                               decoration: TextDecoration.underline,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      ],
+
+                      if (_distanciaDoProdutoKm(produto) != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatarDistancia(
+                                _distanciaDoProdutoKm(produto)!,
+                              ),
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
+                ),
+
                 if (menorPreco)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -817,6 +928,7 @@ class _OfertasPageState extends State<OfertasPage> {
               ],
             ),
           ),
+
           Row(
             children: [
               Container(

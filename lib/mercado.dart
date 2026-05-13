@@ -3,7 +3,6 @@ class Mercado {
   String endereco;
   String logoUrl;
   String telefone;
-
   double? latitude;
   double? longitude;
 

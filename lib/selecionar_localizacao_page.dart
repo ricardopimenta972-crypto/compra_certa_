@@ -10,6 +10,7 @@ class SelecionarLocalizacaoPage extends StatefulWidget {
 }
 
 class _SelecionarLocalizacaoPageState extends State<SelecionarLocalizacaoPage> {
+  // Posição inicial: Goianésia - GO
   LatLng _posicaoSelecionada = const LatLng(-15.3176, -49.1175);
 
   @override
@@ -18,9 +19,11 @@ class _SelecionarLocalizacaoPageState extends State<SelecionarLocalizacaoPage> {
       appBar: AppBar(
         title: const Text('Selecionar localização'),
         backgroundColor: Colors.green,
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.check),
+            icon: const Icon(Icons.check, size: 28),
+            tooltip: 'Confirmar localização',
             onPressed: () {
               Navigator.of(context).pop(_posicaoSelecionada);
             },
@@ -36,6 +39,7 @@ class _SelecionarLocalizacaoPageState extends State<SelecionarLocalizacaoPage> {
           Marker(
             markerId: const MarkerId('mercado'),
             position: _posicaoSelecionada,
+            infoWindow: const InfoWindow(title: 'Local do mercado'),
           ),
         },
         onTap: (posicao) {
@@ -43,14 +47,16 @@ class _SelecionarLocalizacaoPageState extends State<SelecionarLocalizacaoPage> {
             _posicaoSelecionada = posicao;
           });
         },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         color: Colors.white,
         child: const Text(
-          'Toque no mapa para posicionar o mercado. Depois clique no ✓.',
+          'Toque no mapa para ajustar a localização → depois clique no ✓',
           textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
         ),
       ),
     );

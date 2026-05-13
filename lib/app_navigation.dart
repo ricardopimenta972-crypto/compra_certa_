@@ -24,7 +24,13 @@ class _AppNavigationState extends State<AppNavigation> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _indiceAtual,
         selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: Colors.grey[600],
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+        iconSize: 24,
+        selectedFontSize: 14,
+        unselectedFontSize: 12,
         onTap: (index) {
           setState(() {
             _indiceAtual = index;
@@ -36,8 +42,8 @@ class _AppNavigationState extends State<AppNavigation> {
             label: 'Ofertas',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_business),
-            label: 'Cadastro',
+            icon: Icon(Icons.post_add),
+            label: 'Cadastrar',
           ),
         ],
       ),

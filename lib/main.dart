@@ -59,9 +59,17 @@ class _HomePageState extends State<HomePage> {
   final List<String> _categorias = [
     'Geral',
     'Alimentação',
+    'Bebidas',
+    'Carnes',
+    'Hortifruti',
+    'Padaria',
     'Higiene',
     'Limpeza',
-    'Bebidas',
+    'Congelados',
+    'Laticínios',
+    'Churrasco',
+    'Final de Semana',
+    'Festa',
   ];
 
   final List<String> _unidadesMedida = [
