@@ -42,8 +42,6 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _precoController = TextEditingController();
   final TextEditingController _mercadoController = TextEditingController();
   final TextEditingController _imagemController = TextEditingController();
-  final TextEditingController _quantidadeMedidaController =
-      TextEditingController(text: '1');
   final TextEditingController _buscaController = TextEditingController();
   final TextEditingController _nomeMercadoController = TextEditingController();
   final TextEditingController _enderecoMercadoController =
@@ -364,10 +362,7 @@ class _HomePageState extends State<HomePage> {
     final precoTexto = _precoController.text.trim();
     final mercadoTexto = _mercadoController.text.trim();
     final imagemTexto = _imagemController.text.trim();
-    final quantidadeMedidaTexto =
-        _quantidadeMedidaController.text.trim().isEmpty
-        ? '1'
-        : _quantidadeMedidaController.text.trim();
+    const quantidadeMedidaTexto = '1';
 
     DateTime? validade;
     DateTime? inicioRelampago;
@@ -465,7 +460,6 @@ class _HomePageState extends State<HomePage> {
     _precoController.clear();
     _mercadoController.clear();
     _imagemController.clear();
-    _quantidadeMedidaController.text = '1';
     _unidadeSelecionada = 'un';
     setState(() {
       _ehOferta = true;
@@ -1738,38 +1732,20 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 12),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _quantidadeMedidaController,
-                        keyboardType: TextInputType.number,
-                        decoration: _input('Quantidade'),
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _unidadeSelecionada,
-                        decoration: _input('Unidade'),
-                        items: _unidadesMedida.map((unidade) {
-                          return DropdownMenuItem(
-                            value: unidade,
-                            child: Text(unidade),
-                          );
-                        }).toList(),
-                        onChanged: (valor) {
-                          if (valor == null) return;
-
-                          setState(() {
-                            _unidadeSelecionada = valor;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
+                DropdownButtonFormField<String>(
+                  value: _unidadeSelecionada,
+                  decoration: _input('Unidade'),
+                  items: _unidadesMedida.map((unidade) {
+                    return DropdownMenuItem(
+                      value: unidade,
+                      child: Text(unidade),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _unidadeSelecionada = value!;
+                    });
+                  },
                 ),
 
                 const SizedBox(height: 10),

@@ -800,49 +800,49 @@ class _OfertasPageState extends State<OfertasPage> {
 
   Widget _buildOfertaCard(Produto produto) {
     final menorPreco = _ehMenorPreco(produto);
+    final distancia = _distanciaDoProdutoKm(produto);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: menorPreco ? Colors.green.shade50 : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: menorPreco
-            ? Border.all(color: Colors.green.shade300, width: 1.4)
-            : null,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: menorPreco ? Colors.green.shade300 : Colors.grey.shade200,
+          width: menorPreco ? 1.4 : 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: menorPreco
-                ? Colors.green.withOpacity(0.22)
-                : Colors.grey.shade300,
-            blurRadius: menorPreco ? 12 : 8,
-            offset: const Offset(0, 3),
+                ? Colors.green.withOpacity(0.18)
+                : Colors.black.withOpacity(0.06),
+            blurRadius: menorPreco ? 14 : 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 18,
+                  radius: 20,
                   backgroundColor: Colors.green.shade100,
                   child: produto.logoMercadoUrl.isNotEmpty
                       ? ClipOval(
                           child: _imagemDaOferta(
                             produto.logoMercadoUrl,
-                            width: 36,
-                            height: 36,
+                            width: 40,
+                            height: 40,
                             fit: BoxFit.cover,
                           ),
                         )
-                      : const Icon(Icons.store, color: Colors.green, size: 20),
+                      : const Icon(Icons.store, color: Colors.green, size: 22),
                 ),
-
                 const SizedBox(width: 10),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -857,62 +857,58 @@ class _OfertasPageState extends State<OfertasPage> {
                           fontSize: 16,
                         ),
                       ),
-
-                      if (produto.endereco.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () {
-                            _abrirMapa(produto);
-                          },
-                          child: const Text(
-                            'Como chegar',
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      if (_distanciaDoProdutoKm(produto) != null) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _formatarDistancia(
-                                _distanciaDoProdutoKm(produto)!,
-                              ),
-                              style: const TextStyle(
-                                color: Colors.blue,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        children: [
+                          if (produto.endereco.isNotEmpty)
+                            GestureDetector(
+                              onTap: () => _abrirMapa(produto),
+                              child: const Text(
+                                'Como chegar',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          if (distancia != null)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 14,
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  _formatarDistancia(distancia),
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-
                 if (menorPreco)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
+                      horizontal: 10,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.green,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: const Text(
                       'Menor preço',
@@ -922,54 +918,47 @@ class _OfertasPageState extends State<OfertasPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  )
-                else
-                  const Icon(Icons.more_horiz, color: Colors.grey),
+                  ),
               ],
             ),
-          ),
 
-          Row(
-            children: [
-              Container(
-                width: 126,
-                height: 126,
-                margin: const EdgeInsets.fromLTRB(12, 0, 8, 12),
-                decoration: BoxDecoration(
-                  color: menorPreco
-                      ? Colors.green.shade100
-                      : Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: produto.imagemUrl.isNotEmpty
-                    ? Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: _imagemDaOferta(
-                              produto.imagemUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
+            const SizedBox(height: 14),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 122,
+                  height: 122,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.green.shade100),
+                  ),
+                  child: produto.imagemUrl.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: _imagemDaOferta(
+                            produto.imagemUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
                           ),
-                        ],
-                      )
-                    : const Icon(
-                        Icons.workspace_premium,
-                        size: 46,
-                        color: Colors.green,
-                      ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 0, 12, 12),
+                        )
+                      : const Icon(
+                          Icons.image_outlined,
+                          size: 44,
+                          color: Colors.green,
+                        ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (produto.ehOferta)
                         Container(
-                          margin: const EdgeInsets.only(bottom: 6),
+                          margin: const EdgeInsets.only(bottom: 7),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
                             vertical: 4,
@@ -992,33 +981,31 @@ class _OfertasPageState extends State<OfertasPage> {
 
                       Text(
                         produto.nome,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          produto.categoria,
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        produto.categoria,
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 10),
+
                       Text(
                         'R\$ ${_formatarPreco(produto.preco)} / ${produto.unidadeMedida}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: menorPreco ? 27 : 25,
                           fontWeight: FontWeight.bold,
@@ -1027,22 +1014,26 @@ class _OfertasPageState extends State<OfertasPage> {
                               : Colors.green,
                         ),
                       ),
-                      const SizedBox(height: 6),
+
+                      const SizedBox(height: 7),
+
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
                             menorPreco ? Icons.check_circle : Icons.access_time,
-                            size: 14,
+                            size: 15,
                             color: menorPreco ? Colors.green : Colors.grey,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 5),
                           Expanded(
                             child: Text(
                               menorPreco
                                   ? 'Melhor preço encontrado\n${_formatarValidade(produto)}'
                                   : _formatarValidade(produto),
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
+                                height: 1.25,
                                 color: menorPreco ? Colors.green : Colors.grey,
                                 fontWeight: menorPreco
                                     ? FontWeight.bold
@@ -1055,10 +1046,10 @@ class _OfertasPageState extends State<OfertasPage> {
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
