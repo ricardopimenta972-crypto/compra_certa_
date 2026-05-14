@@ -8,10 +8,15 @@ import 'ofertas_page.dart';
 import 'app_navigation.dart';
 import 'mercado.dart';
 import 'selecionar_localizacao_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
-  runApp(const CompraCertaApp());
-}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  runApp(const CompraCertaApp());}
 
 class CompraCertaApp extends StatelessWidget {
   const CompraCertaApp({super.key});
