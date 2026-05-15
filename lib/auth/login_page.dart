@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../app_navigation.dart';
+import '../pdv/cadastro_mercado_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -32,9 +34,24 @@ class _LoginPageState extends State<LoginPage> {
         const SnackBar(content: Text('Login realizado com sucesso!')),
       );
 
+      final usuario = FirebaseAuth.instance.currentUser;
+
+      if (usuario == null) return;
+
+      final mercadoDoc = await FirebaseFirestore.instance
+          .collection('mercados')
+          .doc(usuario.uid)
+          .get();
+
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const AppNavigation()),
+        MaterialPageRoute(
+          builder: (context) => mercadoDoc.exists
+              ? const AppNavigation()
+              : const CadastroMercadoPage(),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       String mensagem = 'Erro ao fazer login';

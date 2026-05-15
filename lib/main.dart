@@ -11,6 +11,9 @@ import 'selecionar_localizacao_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'auth/login_page.dart';
+import 'pdv/cadastro_mercado_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +29,10 @@ class CompraCertaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      routes: {'/auth-pdv': (context) => const LoginPage()},
+      routes: {
+        '/auth-pdv': (context) => const LoginPage(),
+        '/cadastro-mercado': (context) => const CadastroMercadoPage(),
+      },
       home: const LoginPage(),
       debugShowCheckedModeBanner: false,
       title: 'Compra Certa',
@@ -276,57 +282,6 @@ class _HomePageState extends State<HomePage> {
     await prefs.setStringList('produtos', listaJson);
   }
 
-  void _carregarMercado() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final mercadoJson = prefs.getString('mercado_atual');
-    final listaMercadosJson = prefs.getStringList('mercados');
-
-    final mercadosCarregados =
-        listaMercadosJson
-            ?.map((item) => Mercado.fromMap(jsonDecode(item)))
-            .toList() ??
-        [];
-
-    setState(() {
-      _mercados = mercadosCarregados;
-
-      if (mercadoJson != null) {
-        _mercadoAtual = Mercado.fromMap(jsonDecode(mercadoJson));
-      } else if (_mercados.isNotEmpty) {
-        _mercadoAtual = _mercados.first;
-      }
-    });
-  }
-
-  void _salvarMercado(Mercado mercado) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final indiceExistente = _mercados.indexWhere(
-      (item) =>
-          item.nome.trim().toLowerCase() == mercado.nome.trim().toLowerCase(),
-    );
-
-    if (indiceExistente >= 0) {
-      _mercados[indiceExistente] = mercado;
-    } else {
-      _mercados.add(mercado);
-    }
-
-    await prefs.setStringList(
-      'mercados',
-      _mercados.map((item) => jsonEncode(item.toMap())).toList(),
-    );
-
-    await prefs.setString('mercado_atual', jsonEncode(mercado.toMap()));
-
-    setState(() {
-      _mercadoAtual = mercado;
-    });
-
-    _mostrarMensagem('Mercado salvo e selecionado com sucesso.');
-  }
-
   void _carregarProdutos() async {
     final prefs = await SharedPreferences.getInstance();
     final List<String>? listaSalva = prefs.getStringList('produtos');
@@ -338,7 +293,6 @@ class _HomePageState extends State<HomePage> {
         _produtos = listaSalva
             .map((item) => Produto.fromMap(jsonDecode(item)))
             .where((produto) {
-              // mantém se NÃO for oferta
               if (!produto.ehOferta) return true;
 
               if (produto.ehRelampago) {
@@ -346,16 +300,13 @@ class _HomePageState extends State<HomePage> {
                     produto.fimProgramado!.isAfter(agora);
               }
 
-              // mantém se for "enquanto durar"
               if (produto.enquantoDurar) return true;
 
-              // mantém se ainda não venceu
               if (produto.validade != null &&
                   produto.validade!.isAfter(agora)) {
                 return true;
               }
 
-              // se chegou aqui, remove
               return false;
             })
             .toList();
@@ -363,6 +314,102 @@ class _HomePageState extends State<HomePage> {
         _ordenarProdutos();
       });
     }
+  }
+
+  void _carregarMercado() async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    final listaMercadosJson = prefs.getStringList('mercados');
+
+    final mercadosCarregados =
+        listaMercadosJson
+            ?.map((item) => Mercado.fromMap(jsonDecode(item)))
+            .toList() ??
+        [];
+
+    Mercado? mercadoAtualFirebase;
+
+    if (usuario != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('mercados')
+          .doc(usuario.uid)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        mercadoAtualFirebase = Mercado.fromMap(doc.data()!);
+
+        await prefs.setString(
+          'mercado_atual',
+          jsonEncode(mercadoAtualFirebase.toMap()),
+        );
+
+        final existeNaLista = mercadosCarregados.any(
+          (item) =>
+              item.nome.trim().toLowerCase() ==
+              mercadoAtualFirebase!.nome.trim().toLowerCase(),
+        );
+
+        if (!existeNaLista) {
+          mercadosCarregados.add(mercadoAtualFirebase);
+        }
+
+        await prefs.setStringList(
+          'mercados',
+          mercadosCarregados.map((item) => jsonEncode(item.toMap())).toList(),
+        );
+      }
+    }
+
+    final mercadoJson = prefs.getString('mercado_atual');
+
+    setState(() {
+      _mercados = mercadosCarregados;
+
+      if (mercadoAtualFirebase != null) {
+        _mercadoAtual = mercadoAtualFirebase;
+      } else if (mercadoJson != null) {
+        _mercadoAtual = Mercado.fromMap(jsonDecode(mercadoJson));
+      } else if (_mercados.isNotEmpty) {
+        _mercadoAtual = _mercados.first;
+      }
+    });
+  }
+
+  void _salvarMercado(Mercado mercado) async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (_mercados.isNotEmpty) {
+      _mercados[0] = mercado;
+    } else {
+      _mercados.add(mercado);
+    }
+
+    await prefs.setStringList(
+      'mercados',
+      _mercados.map((item) => jsonEncode(item.toMap())).toList(),
+    );
+
+    await prefs.setString('mercado_atual', jsonEncode(mercado.toMap()));
+
+    if (usuario != null) {
+      await FirebaseFirestore.instance
+          .collection('mercados')
+          .doc(usuario.uid)
+          .set({
+            ...mercado.toMap(),
+            'uidDono': usuario.uid,
+            'emailDono': usuario.email,
+            'atualizadoEm': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    }
+
+    setState(() {
+      _mercadoAtual = mercado;
+    });
+
+    _mostrarMensagem('Mercado salvo e sincronizado com sucesso.');
   }
 
   void _adicionarProduto() {
