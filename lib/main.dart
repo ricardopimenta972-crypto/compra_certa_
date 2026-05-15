@@ -10,13 +10,15 @@ import 'mercado.dart';
 import 'selecionar_localizacao_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'auth/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const CompraCertaApp());}
+  runApp(const CompraCertaApp());
+}
 
 class CompraCertaApp extends StatelessWidget {
   const CompraCertaApp({super.key});
@@ -24,13 +26,14 @@ class CompraCertaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      routes: {'/auth-pdv': (context) => const LoginPage()},
+      home: const LoginPage(),
       debugShowCheckedModeBanner: false,
       title: 'Compra Certa',
       theme: ThemeData(
         primarySwatch: Colors.green,
         scaffoldBackgroundColor: Colors.grey[100],
       ),
-      home: const AppNavigation(),
     );
   }
 }
@@ -153,7 +156,6 @@ class _HomePageState extends State<HomePage> {
 
     return imagem?.path;
   }
-
 
   @override
   void initState() {
