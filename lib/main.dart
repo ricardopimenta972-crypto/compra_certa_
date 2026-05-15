@@ -316,100 +316,59 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _carregarMercado() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _carregarMercado() async {
     final usuario = FirebaseAuth.instance.currentUser;
 
-    final listaMercadosJson = prefs.getStringList('mercados');
+    if (usuario == null) return;
 
-    final mercadosCarregados =
-        listaMercadosJson
-            ?.map((item) => Mercado.fromMap(jsonDecode(item)))
-            .toList() ??
-        [];
-
-    Mercado? mercadoAtualFirebase;
-
-    if (usuario != null) {
+    try {
       final doc = await FirebaseFirestore.instance
           .collection('mercados')
           .doc(usuario.uid)
           .get();
 
-      if (doc.exists && doc.data() != null) {
-        mercadoAtualFirebase = Mercado.fromMap(doc.data()!);
-
-        await prefs.setString(
-          'mercado_atual',
-          jsonEncode(mercadoAtualFirebase.toMap()),
-        );
-
-        final existeNaLista = mercadosCarregados.any(
-          (item) =>
-              item.nome.trim().toLowerCase() ==
-              mercadoAtualFirebase!.nome.trim().toLowerCase(),
-        );
-
-        if (!existeNaLista) {
-          mercadosCarregados.add(mercadoAtualFirebase);
-        }
-
-        await prefs.setStringList(
-          'mercados',
-          mercadosCarregados.map((item) => jsonEncode(item.toMap())).toList(),
-        );
+      if (!doc.exists || doc.data() == null) {
+        setState(() {
+          _mercados.clear();
+        });
+        return;
       }
+
+      final mercado = Mercado.fromMap(doc.data()!);
+
+      setState(() {
+        _mercados.clear();
+        _mercados.add(mercado);
+        _mercadoAtual = mercado;
+      });
+    } catch (e) {
+      debugPrint('Erro ao carregar mercado: $e');
     }
-
-    final mercadoJson = prefs.getString('mercado_atual');
-
-    setState(() {
-      _mercados = mercadosCarregados;
-
-      if (mercadoAtualFirebase != null) {
-        _mercadoAtual = mercadoAtualFirebase;
-      } else if (mercadoJson != null) {
-        _mercadoAtual = Mercado.fromMap(jsonDecode(mercadoJson));
-      } else if (_mercados.isNotEmpty) {
-        _mercadoAtual = _mercados.first;
-      }
-    });
   }
 
-  void _salvarMercado(Mercado mercado) async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _salvarMercado(Mercado mercado) async {
     final usuario = FirebaseAuth.instance.currentUser;
 
-    if (_mercados.isNotEmpty) {
-      _mercados[0] = mercado;
-    } else {
-      _mercados.add(mercado);
-    }
+    if (usuario == null) return;
 
-    await prefs.setStringList(
-      'mercados',
-      _mercados.map((item) => jsonEncode(item.toMap())).toList(),
-    );
-
-    await prefs.setString('mercado_atual', jsonEncode(mercado.toMap()));
-
-    if (usuario != null) {
+    try {
       await FirebaseFirestore.instance
           .collection('mercados')
           .doc(usuario.uid)
           .set({
             ...mercado.toMap(),
             'uidDono': usuario.uid,
-            'emailDono': usuario.email,
+            'emailDono': usuario.email ?? '',
             'atualizadoEm': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
+
+      setState(() {
+        _mercados.clear();
+        _mercados.add(mercado);
+      });
+    } catch (e) {
+      debugPrint('Erro ao salvar mercado: $e');
     }
-
-    setState(() {
-      _mercadoAtual = mercado;
-    });
-
-    _mostrarMensagem('Mercado salvo e sincronizado com sucesso.');
   }
 
   void _adicionarProduto() {
@@ -492,6 +451,7 @@ class _HomePageState extends State<HomePage> {
           comprado: false,
           categoria: _categoriaSelecionada,
           mercado: _mercadoAtual?.nome ?? 'Sem mercado',
+          mercadoUid: FirebaseAuth.instance.currentUser?.uid ?? '',
           endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
           latitude: _mercadoAtual?.latitude,
           longitude: _mercadoAtual?.longitude,
@@ -1365,7 +1325,9 @@ class _HomePageState extends State<HomePage> {
                   isExpanded: true,
                   items: _mercados.map((mercado) {
                     return DropdownMenuItem<String>(
-                      value: mercado.nome,
+                      value:
+                          _mercadoAtual?.nome ??
+                          (_mercados.isNotEmpty ? _mercados.first.nome : null),
                       child: Text(
                         mercado.nome,
                         overflow: TextOverflow.ellipsis,
@@ -1377,12 +1339,6 @@ class _HomePageState extends State<HomePage> {
 
                     final mercadoSelecionado = _mercados.firstWhere(
                       (mercado) => mercado.nome == nomeSelecionado,
-                    );
-
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString(
-                      'mercado_atual',
-                      jsonEncode(mercadoSelecionado.toMap()),
                     );
 
                     setState(() {

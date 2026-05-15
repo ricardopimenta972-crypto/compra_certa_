@@ -6,6 +6,7 @@ class Produto {
   bool comprado;
   String categoria;
   String mercado;
+  String mercadoUid;
   String endereco;
   bool ehOferta;
   bool enquantoDurar;
@@ -27,6 +28,7 @@ class Produto {
     this.comprado = false,
     this.categoria = 'Geral',
     this.mercado = 'Sem mercado',
+    this.mercadoUid = '',
     this.endereco = 'Endereço não informado',
     this.ehOferta = true,
     this.enquantoDurar = false,
@@ -50,6 +52,7 @@ class Produto {
       'comprado': comprado,
       'categoria': categoria,
       'mercado': mercado,
+      'mercadoUid': mercadoUid,
       'endereco': endereco,
       'ehOferta': ehOferta,
       'enquantoDurar': enquantoDurar,
@@ -74,6 +77,7 @@ class Produto {
       comprado: map['comprado'] ?? false,
       categoria: map['categoria'] ?? 'Geral',
       mercado: map['mercado'] ?? 'Sem mercado',
+      mercadoUid: map['mercadoUid'] ?? '',
       endereco: map['endereco'] ?? 'Endereço não informado',
       ehOferta: map['ehOferta'] ?? true,
       enquantoDurar: map['enquantoDurar'] ?? false,
