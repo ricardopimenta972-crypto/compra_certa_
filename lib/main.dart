@@ -549,19 +549,41 @@ class _HomePageState extends State<HomePage> {
     _salvarProdutos();
   }
 
-  void _removerProduto(int index) {
-    final nomeRemovido = _produtos[index].nome;
+  Future<void> _removerProduto(int index) async {
+    if (index < 0 || index >= _produtos.length) return;
 
-    setState(() {
-      _produtos.removeAt(index);
-      _ordenarProdutos();
-    });
+    final produto = _produtos[index];
+    final nomeRemovido = produto.nome;
 
-    _salvarProdutos();
-    _mostrarMensagem(
-      '"$nomeRemovido" removido da lista.',
-      corFundo: Colors.red,
-    );
+    try {
+      if (produto.produtoId.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('produtos')
+            .doc(produto.produtoId)
+            .delete();
+      }
+
+      setState(() {
+        _produtos.removeAt(index);
+        _ordenarProdutos();
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      final listaJson = _produtos
+          .map((item) => jsonEncode(item.toMap()))
+          .toList();
+
+      await prefs.setStringList('produtos', listaJson);
+
+      _mostrarMensagem(
+        '$nomeRemovido removido da lista.',
+        corFundo: Colors.red,
+      );
+    } catch (e) {
+      debugPrint('Erro ao remover produto: $e');
+
+      _mostrarMensagem('Erro ao remover produto.', corFundo: Colors.red);
+    }
   }
 
   void _limparBusca() {
