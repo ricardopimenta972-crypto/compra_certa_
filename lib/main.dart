@@ -274,12 +274,40 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _salvarProdutos() async {
+  Future<void> _salvarProdutos() async {
     final prefs = await SharedPreferences.getInstance();
+
     final listaJson = _produtos
         .map((item) => jsonEncode(item.toMap()))
         .toList();
+
     await prefs.setStringList('produtos', listaJson);
+
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (usuario == null) return;
+
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final produto in _produtos) {
+        final docRef = FirebaseFirestore.instance.collection('produtos').doc();
+
+        batch.set(docRef, {
+          ...produto.toMap(),
+          'mercadoUid': produto.mercadoUid.isNotEmpty
+              ? produto.mercadoUid
+              : usuario.uid,
+          'uidDono': usuario.uid,
+          'criadoEm': FieldValue.serverTimestamp(),
+          'atualizadoEm': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Erro ao salvar produtos no Firestore: $e');
+    }
   }
 
   void _carregarProdutos() async {
