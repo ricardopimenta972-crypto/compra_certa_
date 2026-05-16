@@ -291,8 +291,9 @@ class _HomePageState extends State<HomePage> {
       final batch = FirebaseFirestore.instance.batch();
 
       for (final produto in _produtos) {
-        final docRef = FirebaseFirestore.instance.collection('produtos').doc();
-
+        final docRef = FirebaseFirestore.instance
+            .collection('produtos')
+            .doc(produto.produtoId);
         batch.set(docRef, {
           ...produto.toMap(),
           'mercadoUid': produto.mercadoUid.isNotEmpty
@@ -310,37 +311,51 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _carregarProdutos() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? listaSalva = prefs.getStringList('produtos');
+  Future<void> _carregarProdutos() async {
+    final usuario = FirebaseAuth.instance.currentUser;
 
-    if (listaSalva != null) {
+    if (usuario == null) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('produtos')
+          .where('mercadoUid', isEqualTo: usuario.uid)
+          .get();
+
+      final agora = DateTime.now();
+
+      final produtosCarregados = snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+
+            return Produto.fromMap({
+              ...data,
+              'produtoId': data['produtoId'] ?? doc.id,
+            });
+          })
+          .where((produto) {
+            if (!produto.ehOferta) return true;
+
+            if (produto.ehRelampago) {
+              return produto.fimProgramado != null &&
+                  produto.fimProgramado!.isAfter(agora);
+            }
+
+            if (produto.enquantoDurar) return true;
+
+            if (produto.validade != null) {
+              return produto.validade!.isAfter(agora);
+            }
+
+            return true;
+          })
+          .toList();
+
       setState(() {
-        final agora = DateTime.now();
-
-        _produtos = listaSalva
-            .map((item) => Produto.fromMap(jsonDecode(item)))
-            .where((produto) {
-              if (!produto.ehOferta) return true;
-
-              if (produto.ehRelampago) {
-                return produto.fimProgramado != null &&
-                    produto.fimProgramado!.isAfter(agora);
-              }
-
-              if (produto.enquantoDurar) return true;
-
-              if (produto.validade != null &&
-                  produto.validade!.isAfter(agora)) {
-                return true;
-              }
-
-              return false;
-            })
-            .toList();
-
-        _ordenarProdutos();
+        _produtos = produtosCarregados;
       });
+    } catch (e) {
+      debugPrint('Erro ao carregar produtos do Firestore: $e');
     }
   }
 
@@ -584,271 +599,11 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancelar'),
             ),
-
-            const SizedBox(height: 10),
-
-            if (_ehOferta) ...[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Validade da oferta',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('24h'),
-                        selected: _duracaoSelecionada == 1 && !_enquantoDurar,
-                        onSelected: (_) {
-                          setState(() {
-                            _duracaoSelecionada = 1;
-                            _enquantoDurar = false;
-                          });
-                        },
-                      ),
-                      ChoiceChip(
-                        label: const Text('3 dias'),
-                        selected: _duracaoSelecionada == 3 && !_enquantoDurar,
-                        onSelected: (_) {
-                          setState(() {
-                            _duracaoSelecionada = 3;
-                            _enquantoDurar = false;
-                          });
-                        },
-                      ),
-                      ChoiceChip(
-                        label: const Text('7 dias'),
-                        selected: _duracaoSelecionada == 7 && !_enquantoDurar,
-                        onSelected: (_) {
-                          setState(() {
-                            _duracaoSelecionada = 7;
-                            _enquantoDurar = false;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _enquantoDurar,
-
-                        activeColor: Colors.white,
-                        checkColor: Colors.green,
-                        onChanged: (valor) {
-                          setState(() {
-                            _enquantoDurar = valor ?? false;
-                          });
-                        },
-                      ),
-
-                      if (_ehOferta) ...[
-                        const SizedBox(height: 10),
-
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _ehRelampago,
-                              activeColor: Colors.white,
-                              checkColor: Colors.green,
-                              onChanged: (valor) {
-                                setState(() {
-                                  _ehRelampago = valor ?? false;
-                                });
-                              },
-                            ),
-                            const Text(
-                              'Oferta relâmpago',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        if (_ehRelampago) ...[
-                          const SizedBox(height: 10),
-
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _ehRelampago,
-                                activeColor: Colors.white,
-                                checkColor: Colors.green,
-                                onChanged: (valor) {
-                                  setState(() {
-                                    _ehRelampago = valor ?? false;
-                                  });
-                                },
-                              ),
-                              const Text(
-                                '⚡ Oferta relâmpago',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          if (_ehRelampago) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      final horario = await showTimePicker(
-                                        context: context,
-                                        initialTime: TimeOfDay.now(),
-                                      );
-
-                                      if (horario == null) return;
-
-                                      setState(() {
-                                        _horaInicioRelampago = horario;
-                                      });
-                                    },
-                                    child: Text(
-                                      _horaInicioRelampago == null
-                                          ? 'Início'
-                                          : 'Início: ${_horaInicioRelampago!.format(context)}',
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      final horario = await showTimePicker(
-                                        context: context,
-                                        initialTime: TimeOfDay.now(),
-                                      );
-
-                                      if (horario == null) return;
-
-                                      setState(() {
-                                        _horaFimRelampago = horario;
-                                      });
-                                    },
-                                    child: Text(
-                                      _horaFimRelampago == null
-                                          ? 'Fim'
-                                          : 'Fim: ${_horaFimRelampago!.format(context)}',
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    final horario = await showTimePicker(
-                                      context: context,
-                                      initialTime: TimeOfDay.now(),
-                                    );
-
-                                    if (horario == null) return;
-
-                                    setState(() {
-                                      _horaInicioRelampago = horario;
-                                    });
-                                  },
-                                  child: Text(
-                                    _horaInicioRelampago == null
-                                        ? 'Início'
-                                        : 'Início: ${_horaInicioRelampago!.format(context)}',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    final horario = await showTimePicker(
-                                      context: context,
-                                      initialTime: TimeOfDay.now(),
-                                    );
-
-                                    if (horario == null) return;
-
-                                    setState(() {
-                                      _horaFimRelampago = horario;
-                                    });
-                                  },
-                                  child: Text(
-                                    _horaFimRelampago == null
-                                        ? 'Fim'
-                                        : 'Fim: ${_horaFimRelampago!.format(context)}',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _enquantoDurar,
-                              onChanged: (value) {
-                                setState(() {
-                                  _enquantoDurar = value!;
-                                });
-                              },
-                            ),
-                            const Text('Enquanto durar o estoque'),
-                          ],
-                        ),
-
-                        if (!_enquantoDurar)
-                          DropdownButton<int>(
-                            value: _duracaoSelecionada,
-                            onChanged: (value) {
-                              setState(() {
-                                _duracaoSelecionada = value!;
-                              });
-                            },
-                            items: [1, 2, 3, 5, 7]
-                                .map(
-                                  (dias) => DropdownMenuItem(
-                                    value: dias,
-                                    child: Text('$dias dias'),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                      ],
-
-                      const Text(
-                        'Enquanto durar o estoque',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
-
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Apagar'),
             ),
@@ -857,15 +612,34 @@ class _HomePageState extends State<HomePage> {
       },
     );
 
-    if (confirmar == true) {
-      setState(() {
-        _produtos.clear();
-        _categoriaFiltro = 'Todos';
-      });
+    if (confirmar != true) return;
 
-      _salvarProdutos();
-      _mostrarMensagem('Lista apagada com sucesso.', corFundo: Colors.red);
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (usuario != null) {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('produtos')
+          .where('mercadoUid', isEqualTo: usuario.uid)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('produtos');
+
+    setState(() {
+      _produtos.clear();
+      _categoriaFiltro = 'Todos';
+    });
+
+    _mostrarMensagem('Lista limpa com sucesso.', corFundo: Colors.green);
   }
 
   void _editarProduto(int index) {
@@ -2021,22 +1795,9 @@ class _HomePageState extends State<HomePage> {
                 : ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      if (maisBaratos.isNotEmpty) ...[
+                      if (_produtos.isNotEmpty) ...[
                         _buildCabecalhoSecao('Ofertas publicadas'),
-                        ...maisBaratos.map((produto) {
-                          final indiceReal = _produtos.indexOf(produto);
-                          final widget = _buildCardProduto(
-                            produto,
-                            indiceReal,
-                            contadorAnimacao,
-                          );
-                          contadorAnimacao++;
-                          return widget;
-                        }),
-                      ],
-                      if (outrosProdutos.isNotEmpty) ...[
-                        _buildCabecalhoSecao('Oferta ativa'),
-                        ...outrosProdutos.map((produto) {
+                        ..._produtos.map((produto) {
                           final indiceReal = _produtos.indexOf(produto);
                           final widget = _buildCardProduto(
                             produto,

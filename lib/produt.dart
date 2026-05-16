@@ -1,4 +1,5 @@
 class Produto {
+  String produtoId;
   String nome;
   double preco;
   double quantidade;
@@ -21,6 +22,7 @@ class Produto {
   double? longitude;
 
   Produto({
+    String? produtoId,
     required this.nome,
     required this.preco,
     this.quantidade = 1,
@@ -41,10 +43,12 @@ class Produto {
     this.ehRelampago = false,
     this.latitude,
     this.longitude,
-  });
+  }) : produtoId = produtoId ??
+      DateTime.now().microsecondsSinceEpoch.toString();
 
   Map<String, dynamic> toMap() {
     return {
+      'produtoId': produtoId,
       'nome': nome,
       'preco': preco,
       'quantidade': quantidade,
@@ -70,6 +74,7 @@ class Produto {
 
   factory Produto.fromMap(Map<String, dynamic> map) {
     return Produto(
+      produtoId: map['produtoId'] ?? DateTime.now().microsecondsSinceEpoch.toString(),
       nome: map['nome'] ?? '',
       preco: (map['preco'] ?? 0).toDouble(),
       quantidade: (map['quantidade'] ?? 1).toDouble(),
