@@ -274,6 +274,75 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<bool> _consumirCreditoPublicacao({required bool ehRelampago}) async {
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (usuario == null) return false;
+
+    final int custo = ehRelampago ? 2 : 1;
+
+    try {
+      final mercadoRef = FirebaseFirestore.instance
+          .collection('mercados')
+          .doc(usuario.uid);
+
+      final mercadoSnapshot = await mercadoRef.get();
+
+      if (!mercadoSnapshot.exists) {
+        if (!mounted) return false;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Mercado não encontrado. Cadastre o mercado antes de publicar.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return false;
+      }
+
+      final dados = mercadoSnapshot.data() as Map<String, dynamic>;
+      final int creditosDisponiveis =
+          (dados['creditosDisponiveis'] ?? 0) as int;
+
+      if (creditosDisponiveis < custo) {
+        if (!mounted) return false;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Créditos insuficientes. Esta publicação custa $custo crédito(s). Você tem $creditosDisponiveis.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return false;
+      }
+
+      await mercadoRef.update({
+        'creditosDisponiveis': FieldValue.increment(-custo),
+        'creditosUsadosTotal': FieldValue.increment(custo),
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      debugPrint('Erro ao consumir crédito: $e');
+
+      if (!mounted) return false;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao consumir crédito: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      return false;
+    }
+  }
+
   Future<void> _salvarProdutos() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -294,6 +363,7 @@ class _HomePageState extends State<HomePage> {
         final docRef = FirebaseFirestore.instance
             .collection('produtos')
             .doc(produto.produtoId);
+
         batch.set(docRef, {
           ...produto.toMap(),
           'mercadoUid': produto.mercadoUid.isNotEmpty
@@ -302,7 +372,7 @@ class _HomePageState extends State<HomePage> {
           'uidDono': usuario.uid,
           'criadoEm': FieldValue.serverTimestamp(),
           'atualizadoEm': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
       }
 
       await batch.commit();
@@ -322,40 +392,30 @@ class _HomePageState extends State<HomePage> {
           .where('mercadoUid', isEqualTo: usuario.uid)
           .get();
 
-      final agora = DateTime.now();
+      final produtosCarregados = snapshot.docs.map((doc) {
+        final data = doc.data();
 
-      final produtosCarregados = snapshot.docs
-          .map((doc) {
-            final data = doc.data();
-
-            return Produto.fromMap({
-              ...data,
-              'produtoId': data['produtoId'] ?? doc.id,
-            });
-          })
-          .where((produto) {
-            if (!produto.ehOferta) return true;
-
-            if (produto.ehRelampago) {
-              return produto.fimProgramado != null &&
-                  produto.fimProgramado!.isAfter(agora);
-            }
-
-            if (produto.enquantoDurar) return true;
-
-            if (produto.validade != null) {
-              return produto.validade!.isAfter(agora);
-            }
-
-            return true;
-          })
-          .toList();
+        return Produto.fromMap({
+          ...data,
+          'produtoId': data['produtoId'] ?? doc.id,
+        });
+      }).toList();
 
       setState(() {
         _produtos = produtosCarregados;
+        _ordenarProdutos();
       });
     } catch (e) {
       debugPrint('Erro ao carregar produtos do Firestore: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar produtos: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -395,26 +455,54 @@ class _HomePageState extends State<HomePage> {
     if (usuario == null) return;
 
     try {
-      await FirebaseFirestore.instance
+      final mercadoRef = FirebaseFirestore.instance
           .collection('mercados')
-          .doc(usuario.uid)
-          .set({
-            ...mercado.toMap(),
-            'uidDono': usuario.uid,
-            'emailDono': usuario.email ?? '',
-            'atualizadoEm': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+          .doc(usuario.uid);
+
+      final mercadoDoc = await mercadoRef.get();
+
+      final dadosMercado = <String, dynamic>{
+        ...mercado.toMap(),
+        'uidDono': usuario.uid,
+        'emailDono': usuario.email ?? '',
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      };
+
+      if (!mercadoDoc.exists) {
+        dadosMercado.addAll({
+          'plano': 'lancamento',
+          'creditosDisponiveis': 100,
+          'creditosUsadosTotal': 0,
+          'creditosIniciaisRecebidos': true,
+          'planoAtivo': false,
+          'dataCriacao': FieldValue.serverTimestamp(),
+          'dataAtivacaoPlano': null,
+          'dataVencimentoPlano': null,
+        });
+      }
+
+      await mercadoRef.set(dadosMercado, SetOptions(merge: true));
 
       setState(() {
         _mercados.clear();
         _mercados.add(mercado);
+        _mercadoAtual = mercado;
       });
+
+      _mostrarMensagem(
+        mercadoDoc.exists
+            ? 'Mercado atualizado com sucesso.'
+            : 'Mercado cadastrado com 100 créditos de lançamento.',
+        corFundo: Colors.green,
+      );
     } catch (e) {
       debugPrint('Erro ao salvar mercado: $e');
+
+      _mostrarMensagem('Erro ao salvar mercado.', corFundo: Colors.red);
     }
   }
 
-  void _adicionarProduto() {
+  Future<void> _adicionarProduto() async {
     final nome = _controller.text.trim();
     final precoTexto = _precoController.text.trim();
     final mercadoTexto = _mercadoController.text.trim();
@@ -485,6 +573,12 @@ class _HomePageState extends State<HomePage> {
       _mostrarMensagem('Preço inválido!', corFundo: Colors.red);
       return;
     }
+
+    final creditoConsumido = await _consumirCreditoPublicacao(
+      ehRelampago: _ehRelampago,
+    );
+
+    if (!creditoConsumido) return;
 
     setState(() {
       _produtos.add(

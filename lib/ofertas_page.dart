@@ -322,6 +322,7 @@ class _OfertasPageState extends State<OfertasPage> {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('produtos')
+          .orderBy('atualizadoEm', descending: true)
           .get();
 
       final agora = DateTime.now();

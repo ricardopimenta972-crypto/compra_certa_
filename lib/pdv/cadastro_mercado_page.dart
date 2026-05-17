@@ -7,13 +7,10 @@ class CadastroMercadoPage extends StatefulWidget {
   const CadastroMercadoPage({super.key});
 
   @override
-  State<CadastroMercadoPage> createState() =>
-      _CadastroMercadoPageState();
+  State<CadastroMercadoPage> createState() => _CadastroMercadoPageState();
 }
 
-class _CadastroMercadoPageState
-    extends State<CadastroMercadoPage> {
-
+class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
   final nomeController = TextEditingController();
   final enderecoController = TextEditingController();
   final cidadeController = TextEditingController();
@@ -24,11 +21,9 @@ class _CadastroMercadoPageState
     final usuario = FirebaseAuth.instance.currentUser;
 
     if (usuario == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Usuário não logado'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Usuário não logado')));
       return;
     }
 
@@ -37,38 +32,50 @@ class _CadastroMercadoPageState
     });
 
     try {
-      await FirebaseFirestore.instance
+      final mercadoRef = FirebaseFirestore.instance
           .collection('mercados')
-          .doc(usuario.uid)
-          .set({
+          .doc(usuario.uid);
+
+      final mercadoDoc = await mercadoRef.get();
+
+      final dadosMercado = <String, dynamic>{
         'nome': nomeController.text.trim(),
         'endereco': enderecoController.text.trim(),
         'cidade': cidadeController.text.trim(),
         'uidDono': usuario.uid,
         'emailDono': usuario.email,
-        'dataCriacao': FieldValue.serverTimestamp(),
-      });
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      };
+
+      if (!mercadoDoc.exists) {
+        dadosMercado.addAll({
+          'plano': 'lancamento',
+          'creditosDisponiveis': 100,
+          'creditosUsadosTotal': 0,
+          'creditosIniciaisRecebidos': true,
+          'planoAtivo': false,
+          'dataCriacao': FieldValue.serverTimestamp(),
+          'dataAtivacaoPlano': null,
+          'dataVencimentoPlano': null,
+        });
+      }
+
+      await mercadoRef.set(dadosMercado, SetOptions(merge: true));
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mercado salvo com sucesso'),
-        ),
+        const SnackBar(content: Text('Mercado salvo com sucesso')),
       );
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const AppNavigation(),
-        ),
+        MaterialPageRoute(builder: (context) => const AppNavigation()),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
     }
 
     setState(() {
@@ -79,37 +86,28 @@ class _CadastroMercadoPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cadastrar Mercado'),
-      ),
+      appBar: AppBar(title: const Text('Cadastrar Mercado')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             TextField(
               controller: nomeController,
-              decoration: const InputDecoration(
-                labelText: 'Nome do mercado',
-              ),
+              decoration: const InputDecoration(labelText: 'Nome do mercado'),
             ),
 
             const SizedBox(height: 16),
 
             TextField(
               controller: enderecoController,
-              decoration: const InputDecoration(
-                labelText: 'Endereço',
-              ),
+              decoration: const InputDecoration(labelText: 'Endereço'),
             ),
 
             const SizedBox(height: 16),
 
             TextField(
               controller: cidadeController,
-              decoration: const InputDecoration(
-                labelText: 'Cidade',
-              ),
+              decoration: const InputDecoration(labelText: 'Cidade'),
             ),
 
             const SizedBox(height: 32),
@@ -118,14 +116,10 @@ class _CadastroMercadoPageState
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: carregando
-                    ? null
-                    : salvarMercado,
+                onPressed: carregando ? null : salvarMercado,
                 child: carregando
                     ? const CircularProgressIndicator()
-                    : const Text(
-                  'Salvar Mercado',
-                ),
+                    : const Text('Salvar Mercado'),
               ),
             ),
           ],
