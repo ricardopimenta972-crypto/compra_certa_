@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'produt.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -318,19 +319,27 @@ class _OfertasPageState extends State<OfertasPage> {
   }
 
   Future<void> _carregarOfertas() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? listaSalva = prefs.getStringList('produtos');
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('produtos')
+          .get();
 
-    if (listaSalva == null) return;
+      final agora = DateTime.now();
 
-    setState(() {
-      _ofertas = listaSalva
-          .map((item) => Produto.fromMap(jsonDecode(item)))
+      final ofertasCarregadas = snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+
+            return Produto.fromMap({
+              ...data,
+              'produtoId': data['produtoId'] ?? doc.id,
+            });
+          })
           .where((produto) {
-            final agora = DateTime.now();
-
             if (!produto.ehOferta) return false;
+
             if (produto.statusOferta != 'ativa') return false;
+
             if (produto.ehRelampago) {
               if (produto.inicioProgramado == null ||
                   produto.fimProgramado == null) {
@@ -341,25 +350,22 @@ class _OfertasPageState extends State<OfertasPage> {
                   agora.isBefore(produto.fimProgramado!);
             }
 
-            final ofertaValida =
-                produto.enquantoDurar ||
-                (produto.validade != null && produto.validade!.isAfter(agora));
+            if (produto.enquantoDurar) return true;
 
-            if (!ofertaValida) return false;
+            if (produto.validade != null) {
+              return produto.validade!.isAfter(agora);
+            }
 
             return true;
           })
           .toList();
-      _ofertas.sort((a, b) {
-        final aMenor = _ehMenorPreco(a);
-        final bMenor = _ehMenorPreco(b);
 
-        if (aMenor && !bMenor) return -1;
-        if (!aMenor && bMenor) return 1;
-
-        return a.preco.compareTo(b.preco);
+      setState(() {
+        _ofertas = ofertasCarregadas;
       });
-    });
+    } catch (e) {
+      debugPrint('Erro ao carregar ofertas do Firestore: $e');
+    }
   }
 
   @override

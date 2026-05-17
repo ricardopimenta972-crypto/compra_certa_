@@ -1537,6 +1537,20 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.delete_sweep),
             tooltip: 'Limpar lista',
           ),
+          IconButton(
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+
+              if (!mounted) return;
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+          ),
         ],
       ),
 

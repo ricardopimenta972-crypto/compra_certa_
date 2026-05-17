@@ -91,10 +91,24 @@ class _LoginPageState extends State<LoginPage> {
         password: senhaController.text.trim(),
       );
 
+      final usuario = FirebaseAuth.instance.currentUser;
+
+      if (usuario == null) {
+        throw FirebaseAuthException(
+          code: 'usuario-null',
+          message: 'Usuário não foi criado corretamente.',
+        );
+      }
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Conta criada com sucesso!')),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CadastroMercadoPage()),
       );
     } on FirebaseAuthException catch (e) {
       String mensagem = 'Erro ao criar conta';
@@ -111,15 +125,21 @@ class _LoginPageState extends State<LoginPage> {
         mensagem = 'E-mail inválido';
       }
 
+      if (e.code == 'usuario-null') {
+        mensagem = 'Usuário não foi criado corretamente';
+      }
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mensagem)));
     } finally {
-      setState(() {
-        carregando = false;
-      });
+      if (mounted) {
+        setState(() {
+          carregando = false;
+        });
+      }
     }
   }
 
