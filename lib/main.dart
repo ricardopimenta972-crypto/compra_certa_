@@ -14,6 +14,7 @@ import 'auth/login_page.dart';
 import 'pdv/cadastro_mercado_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1337,45 +1338,88 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: corPrincipal.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icone, color: corPrincipal, size: 26),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: corPrincipal.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icone, color: corPrincipal, size: 26),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: TextStyle(
+                        color: corPrincipal,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitulo,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    color: corPrincipal,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+
+          if (creditos <= 0) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _abrirSolicitacaoPlanoWhatsApp,
+                icon: const Icon(Icons.chat),
+                label: const Text('Solicitar plano pelo WhatsApp'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitulo,
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _abrirSolicitacaoPlanoWhatsApp() async {
+    const String numeroWhatsApp = '5562982315737';
+
+    final String mensagem =
+        'Olá, quero ativar um plano do Compra Certa para continuar publicando ofertas no meu mercado.';
+
+    final Uri url = Uri.parse(
+      'https://wa.me/$numeroWhatsApp?text=${Uri.encodeComponent(mensagem)}',
+    );
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
+      );
+    }
   }
 
   Widget _buildCabecalhoSecao(String titulo) {
