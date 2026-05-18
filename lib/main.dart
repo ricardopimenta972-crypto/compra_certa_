@@ -99,6 +99,8 @@ class _HomePageState extends State<HomePage> {
   ];
 
   List<Produto> _produtos = [];
+  int _creditosDisponiveis = 0;
+  String _planoMercado = 'lancamento';
   String _busca = '';
   String _categoriaSelecionada = 'Geral';
   String _unidadeSelecionada = 'un';
@@ -437,12 +439,17 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      final mercado = Mercado.fromMap(doc.data()!);
+      final data = doc.data()!;
+
+      final mercado = Mercado.fromMap(data);
 
       setState(() {
         _mercados.clear();
         _mercados.add(mercado);
         _mercadoAtual = mercado;
+
+        _creditosDisponiveis = data['creditosDisponiveis'] ?? 0;
+        _planoMercado = data['plano'] ?? 'lancamento';
       });
     } catch (e) {
       debugPrint('Erro ao carregar mercado: $e');
@@ -1281,6 +1288,96 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildCardCreditosMercado() {
+    final int creditos = _creditosDisponiveis;
+    final String plano = _planoMercado;
+
+    Color corPrincipal;
+    Color corFundo;
+    IconData icone;
+    String titulo;
+    String subtitulo;
+
+    if (creditos <= 0) {
+      corPrincipal = Colors.red;
+      corFundo = Colors.red.shade50;
+      icone = Icons.warning_amber_rounded;
+      titulo = 'Sem créditos disponíveis';
+      subtitulo = 'Ative um plano para continuar publicando ofertas.';
+    } else if (creditos <= 10) {
+      corPrincipal = Colors.orange;
+      corFundo = Colors.orange.shade50;
+      icone = Icons.error_outline;
+      titulo =
+          '$creditos crédito${creditos == 1 ? '' : 's'} disponível${creditos == 1 ? '' : 'is'}';
+      subtitulo = 'Seus créditos de lançamento estão acabando.';
+    } else {
+      corPrincipal = Colors.green;
+      corFundo = Colors.green.shade50;
+      icone = Icons.confirmation_number_rounded;
+      titulo = '$creditos créditos disponíveis';
+      subtitulo = plano == 'lancamento'
+          ? 'Créditos gratuitos de lançamento.'
+          : 'Plano ativo: $plano';
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: corFundo,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: corPrincipal.withOpacity(0.35), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: corPrincipal.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icone, color: corPrincipal, size: 26),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    color: corPrincipal,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitulo,
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCabecalhoSecao(String titulo) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -1926,6 +2023,9 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.all(12),
                     children: [
                       if (_produtos.isNotEmpty) ...[
+                        _buildCardCreditosMercado(),
+                        const SizedBox(height: 12),
+
                         _buildCabecalhoSecao('Ofertas publicadas'),
                         ..._produtos.map((produto) {
                           final indiceReal = _produtos.indexOf(produto);
