@@ -16,8 +16,41 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController senhaController = TextEditingController();
 
   bool carregando = false;
+  bool modoCriarConta = false;
+
+  bool _camposValidos() {
+    final email = emailController.text.trim();
+    final senha = senhaController.text.trim();
+
+    if (email.isEmpty || senha.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Preencha e-mail e senha.')));
+      return false;
+    }
+
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Digite um e-mail válido.')));
+      return false;
+    }
+
+    if (senha.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A senha deve ter pelo menos 6 caracteres.'),
+        ),
+      );
+      return false;
+    }
+
+    return true;
+  }
 
   Future<void> fazerLogin() async {
+    if (!_camposValidos()) return;
+
     try {
       setState(() {
         carregando = true;
@@ -26,12 +59,6 @@ class _LoginPageState extends State<LoginPage> {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: senhaController.text.trim(),
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login realizado com sucesso!')),
       );
 
       final usuario = FirebaseAuth.instance.currentUser;
@@ -44,6 +71,10 @@ class _LoginPageState extends State<LoginPage> {
           .get();
 
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login realizado com sucesso!')),
+      );
 
       Navigator.pushReplacement(
         context,
@@ -58,14 +89,12 @@ class _LoginPageState extends State<LoginPage> {
 
       if (e.code == 'user-not-found') {
         mensagem = 'Usuário não encontrado';
-      }
-
-      if (e.code == 'wrong-password') {
+      } else if (e.code == 'wrong-password') {
         mensagem = 'Senha incorreta';
-      }
-
-      if (e.code == 'invalid-email') {
+      } else if (e.code == 'invalid-email') {
         mensagem = 'E-mail inválido';
+      } else if (e.code == 'invalid-credential') {
+        mensagem = 'E-mail ou senha incorretos';
       }
 
       if (!mounted) return;
@@ -74,13 +103,17 @@ class _LoginPageState extends State<LoginPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(mensagem)));
     } finally {
-      setState(() {
-        carregando = false;
-      });
+      if (mounted) {
+        setState(() {
+          carregando = false;
+        });
+      }
     }
   }
 
   Future<void> criarConta() async {
+    if (!_camposValidos()) return;
+
     try {
       setState(() {
         carregando = true;
@@ -115,17 +148,11 @@ class _LoginPageState extends State<LoginPage> {
 
       if (e.code == 'weak-password') {
         mensagem = 'Senha muito fraca';
-      }
-
-      if (e.code == 'email-already-in-use') {
-        mensagem = 'Este e-mail já está cadastrado';
-      }
-
-      if (e.code == 'invalid-email') {
+      } else if (e.code == 'email-already-in-use') {
+        mensagem = 'Este e-mail já está cadastrado. Use Entrar.';
+      } else if (e.code == 'invalid-email') {
         mensagem = 'E-mail inválido';
-      }
-
-      if (e.code == 'usuario-null') {
+      } else if (e.code == 'usuario-null') {
         mensagem = 'Usuário não foi criado corretamente';
       }
 
@@ -144,32 +171,117 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
+  void dispose() {
+    emailController.dispose();
+    senhaController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final titulo = modoCriarConta
+        ? 'Criar conta de mercado'
+        : 'Entrar como mercado';
+
+    final subtitulo = modoCriarConta
+        ? 'Crie seu acesso para cadastrar seu mercado no Compra Certa.'
+        : 'Acesse o painel para publicar e gerenciar ofertas.';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Login Compra Certa')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      appBar: AppBar(title: Text(titulo)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 12),
+
+            Icon(
+              modoCriarConta ? Icons.storefront : Icons.store,
+              size: 56,
+              color: Colors.green,
+            ),
+
+            const SizedBox(height: 16),
+
+            Text(
+              titulo,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              subtitulo,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
+            ),
+
+            const SizedBox(height: 28),
+
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: 'E-mail'),
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'E-mail',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(),
+              ),
             ),
+
             const SizedBox(height: 16),
+
             TextField(
               controller: senhaController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Senha'),
+              decoration: const InputDecoration(
+                labelText: 'Senha',
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 22),
+
             ElevatedButton(
-              onPressed: carregando ? null : fazerLogin,
-              child: const Text('Entrar'),
+              onPressed: carregando
+                  ? null
+                  : modoCriarConta
+                  ? criarConta
+                  : fazerLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: carregando
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(modoCriarConta ? 'Criar conta' : 'Entrar'),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: carregando ? null : criarConta,
-              child: const Text('Criar conta'),
+
+            const SizedBox(height: 18),
+
+            TextButton(
+              onPressed: carregando
+                  ? null
+                  : () {
+                      setState(() {
+                        modoCriarConta = !modoCriarConta;
+                      });
+                    },
+              child: Text(
+                modoCriarConta
+                    ? 'Já tenho conta. Entrar'
+                    : 'Ainda não tenho conta. Criar conta de mercado',
+              ),
             ),
           ],
         ),

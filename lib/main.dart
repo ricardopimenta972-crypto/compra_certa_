@@ -34,7 +34,7 @@ class CompraCertaApp extends StatelessWidget {
         '/auth-pdv': (context) => const LoginPage(),
         '/cadastro-mercado': (context) => const CadastroMercadoPage(),
       },
-      home: const LoginPage(),
+      home: const OfertasPage(),
       debugShowCheckedModeBanner: false,
       title: 'Compra Certa',
       theme: ThemeData(
@@ -1084,7 +1084,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Cadastro do mercado'),
+          title: const Text('Editar dados do PDV'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1092,17 +1092,28 @@ class _HomePageState extends State<HomePage> {
                 TextField(
                   controller: _nomeMercadoController,
                   decoration: const InputDecoration(
-                    labelText: 'Nome do mercado',
+                    labelText: 'Nome do mercado / PDV',
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                TextField(
+                  controller: _telefoneMercadoController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Telefone / WhatsApp',
+                  ),
+                ),
+                const SizedBox(height: 10),
+
                 TextField(
                   controller: _enderecoMercadoController,
                   decoration: const InputDecoration(
-                    labelText: 'Endereço do mercado',
+                    labelText: 'Endereço completo',
                   ),
                 ),
                 const SizedBox(height: 10),
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1116,9 +1127,7 @@ class _HomePageState extends State<HomePage> {
                           });
                         }
                       },
-
                       icon: const Icon(Icons.photo_camera),
-
                       label: const Text('Selecionar logo/fachada'),
                     ),
 
@@ -1135,14 +1144,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _telefoneMercadoController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Telefone / WhatsApp',
-                  ),
-                ),
+
                 const SizedBox(height: 10),
 
                 ElevatedButton.icon(
@@ -1175,12 +1177,14 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancelar'),
             ),
+
             ElevatedButton(
               onPressed: () {
                 final nome = _nomeMercadoController.text.trim();
                 final endereco = _enderecoMercadoController.text.trim();
                 final logo = _logoMercadoController.text.trim();
                 final telefone = _telefoneMercadoController.text.trim();
+
                 final latitude = double.tryParse(
                   _latitudeMercadoController.text.trim().replaceAll(',', '.'),
                 );
@@ -1191,7 +1195,7 @@ class _HomePageState extends State<HomePage> {
 
                 if (nome.isEmpty || endereco.isEmpty) {
                   _mostrarMensagem(
-                    'Preencha nome e endereço do mercado.',
+                    'Preencha nome e endereço do PDV.',
                     corFundo: Colors.red,
                   );
                   return;
@@ -1210,7 +1214,7 @@ class _HomePageState extends State<HomePage> {
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Salvar'),
+              child: const Text('Salvar alterações'),
             ),
           ],
         );

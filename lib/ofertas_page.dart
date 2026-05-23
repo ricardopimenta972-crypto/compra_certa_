@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'produt.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'auth/login_page.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -441,15 +442,6 @@ class _OfertasPageState extends State<OfertasPage> {
         children: [
           Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.menu, color: Colors.white),
-              ),
               const Expanded(
                 child: Text(
                   'COMPRA CERTA',
@@ -462,16 +454,16 @@ class _OfertasPageState extends State<OfertasPage> {
                   ),
                 ),
               ),
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.notifications_none,
-                  color: Colors.white,
+              GestureDetector(
+                onTap: _abrirMenuConsumidor,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.menu, color: Colors.white),
                 ),
               ),
             ],
@@ -509,6 +501,69 @@ class _OfertasPageState extends State<OfertasPage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _abrirMenuConsumidor() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.store),
+                  title: const Text('Entrar / criar conta de mercado'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.support_agent),
+                  title: const Text('Contato / suporte'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Contato do suporte será adicionado em breve.',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('Sobre o Compra Certa'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'Compra Certa',
+                      applicationVersion: 'Versão de teste',
+                      children: const [
+                        Text(
+                          'O Compra Certa ajuda consumidores a encontrar ofertas próximas e mercados a divulgarem promoções de forma simples.',
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
