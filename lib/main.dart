@@ -64,6 +64,24 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _logoMercadoController = TextEditingController();
   final TextEditingController _telefoneMercadoController =
       TextEditingController();
+  final TextEditingController _responsavelMercadoController =
+      TextEditingController();
+  final TextEditingController _whatsappMercadoController =
+      TextEditingController();
+  final TextEditingController _numeroMercadoController =
+      TextEditingController();
+  final TextEditingController _bairroMercadoController =
+      TextEditingController();
+  final TextEditingController _cidadeMercadoController =
+      TextEditingController();
+  final TextEditingController _estadoMercadoController =
+      TextEditingController();
+  final TextEditingController _categoriaMercadoController =
+      TextEditingController();
+  final TextEditingController _horarioMercadoController =
+      TextEditingController();
+  final TextEditingController _creditosMercadoController =
+      TextEditingController();
   final TextEditingController _latitudeMercadoController =
       TextEditingController();
   final TextEditingController _longitudeMercadoController =
@@ -1073,9 +1091,19 @@ class _HomePageState extends State<HomePage> {
 
   void _abrirCadastroMercado() {
     _nomeMercadoController.text = _mercadoAtual?.nome ?? '';
-    _enderecoMercadoController.text = _mercadoAtual?.endereco ?? '';
-    _logoMercadoController.text = _mercadoAtual?.logoUrl ?? '';
+    _responsavelMercadoController.text = _mercadoAtual?.responsavel ?? '';
     _telefoneMercadoController.text = _mercadoAtual?.telefone ?? '';
+    _whatsappMercadoController.text = _mercadoAtual?.whatsapp ?? '';
+    _enderecoMercadoController.text = _mercadoAtual?.endereco ?? '';
+    _numeroMercadoController.text = _mercadoAtual?.numero ?? '';
+    _bairroMercadoController.text = _mercadoAtual?.bairro ?? '';
+    _cidadeMercadoController.text = _mercadoAtual?.cidade ?? '';
+    _estadoMercadoController.text = _mercadoAtual?.estado ?? '';
+    _categoriaMercadoController.text = _mercadoAtual?.categoria ?? '';
+    _horarioMercadoController.text = _mercadoAtual?.horarioFuncionamento ?? '';
+    _creditosMercadoController.text =
+        _mercadoAtual?.creditos.toString() ?? '100';
+    _logoMercadoController.text = _mercadoAtual?.logoUrl ?? '';
     _latitudeMercadoController.text = _mercadoAtual?.latitude?.toString() ?? '';
     _longitudeMercadoController.text =
         _mercadoAtual?.longitude?.toString() ?? '';
@@ -1098,10 +1126,32 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 10),
 
                 TextField(
+                  controller: _responsavelMercadoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Responsável pelo PDV',
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
                   controller: _telefoneMercadoController,
                   keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Telefone'),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _whatsappMercadoController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'WhatsApp'),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _categoriaMercadoController,
                   decoration: const InputDecoration(
-                    labelText: 'Telefone / WhatsApp',
+                    labelText: 'Categoria do PDV',
+                    hintText: 'Ex: Mercado, farmácia, açougue...',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1109,10 +1159,56 @@ class _HomePageState extends State<HomePage> {
                 TextField(
                   controller: _enderecoMercadoController,
                   decoration: const InputDecoration(
-                    labelText: 'Endereço completo',
+                    labelText: 'Rua / endereço',
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                TextField(
+                  controller: _numeroMercadoController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Número'),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _bairroMercadoController,
+                  decoration: const InputDecoration(labelText: 'Bairro'),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _cidadeMercadoController,
+                  decoration: const InputDecoration(labelText: 'Cidade'),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _estadoMercadoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Estado / UF',
+                    hintText: 'Ex: GO',
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _horarioMercadoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Horário de funcionamento',
+                    hintText: 'Ex: Segunda a sábado, 7h às 20h',
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _creditosMercadoController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Créditos disponíveis',
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1145,7 +1241,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
 
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -1181,9 +1277,21 @@ class _HomePageState extends State<HomePage> {
             ElevatedButton(
               onPressed: () {
                 final nome = _nomeMercadoController.text.trim();
-                final endereco = _enderecoMercadoController.text.trim();
-                final logo = _logoMercadoController.text.trim();
+                final responsavel = _responsavelMercadoController.text.trim();
                 final telefone = _telefoneMercadoController.text.trim();
+                final whatsapp = _whatsappMercadoController.text.trim();
+                final endereco = _enderecoMercadoController.text.trim();
+                final numero = _numeroMercadoController.text.trim();
+                final bairro = _bairroMercadoController.text.trim();
+                final cidade = _cidadeMercadoController.text.trim();
+                final estado = _estadoMercadoController.text.trim();
+                final categoria = _categoriaMercadoController.text.trim();
+                final horarioFuncionamento = _horarioMercadoController.text
+                    .trim();
+                final logo = _logoMercadoController.text.trim();
+
+                final creditos =
+                    int.tryParse(_creditosMercadoController.text.trim()) ?? 100;
 
                 final latitude = double.tryParse(
                   _latitudeMercadoController.text.trim().replaceAll(',', '.'),
@@ -1204,9 +1312,18 @@ class _HomePageState extends State<HomePage> {
                 _salvarMercado(
                   Mercado(
                     nome: nome,
+                    responsavel: responsavel,
                     endereco: endereco,
+                    numero: numero,
+                    bairro: bairro,
+                    cidade: cidade,
+                    estado: estado,
+                    categoria: categoria,
                     logoUrl: logo,
                     telefone: telefone,
+                    whatsapp: whatsapp,
+                    horarioFuncionamento: horarioFuncionamento,
+                    creditos: creditos,
                     latitude: latitude,
                     longitude: longitude,
                   ),

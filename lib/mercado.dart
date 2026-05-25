@@ -1,59 +1,55 @@
 class Mercado {
   String nome;
   String responsavel;
-  String telefone;
-  String whatsapp;
   String endereco;
   String numero;
   String bairro;
   String cidade;
   String estado;
-  String uf;
-  String categoriaNegocio;
-  String horarioFuncionamento;
+  String categoria;
   String logoUrl;
+  String telefone;
+  String whatsapp;
+  String horarioFuncionamento;
+  int creditos;
   double? latitude;
   double? longitude;
-  int creditos;
 
   Mercado({
     required this.nome,
     this.responsavel = '',
-    required this.telefone,
-    String? whatsapp,
     required this.endereco,
     this.numero = '',
     this.bairro = '',
     this.cidade = '',
     this.estado = '',
-    String? uf,
-    this.categoriaNegocio = '',
-    this.horarioFuncionamento = '',
+    this.categoria = '',
     required this.logoUrl,
+    required this.telefone,
+    this.whatsapp = '',
+    this.horarioFuncionamento = '',
+    this.creditos = 100,
     this.latitude,
     this.longitude,
-    this.creditos = 100,
-  })  : whatsapp = whatsapp ?? telefone,
-        uf = uf ?? estado;
+  });
 
   Map<String, dynamic> toMap() {
     return {
       'nome': nome,
       'responsavel': responsavel,
-      'telefone': telefone,
-      'whatsapp': whatsapp,
       'endereco': endereco,
       'numero': numero,
       'bairro': bairro,
       'cidade': cidade,
       'estado': estado,
-      'uf': uf,
-      'categoriaNegocio': categoriaNegocio,
-      'horarioFuncionamento': horarioFuncionamento,
+      'categoria': categoria,
       'logoUrl': logoUrl,
+      'telefone': telefone,
+      'whatsapp': whatsapp,
+      'horarioFuncionamento': horarioFuncionamento,
+      'creditos': creditos,
       'latitude': latitude,
       'longitude': longitude,
-      'creditos': creditos,
     };
   }
 
@@ -61,24 +57,19 @@ class Mercado {
     return Mercado(
       nome: map['nome'] ?? '',
       responsavel: map['responsavel'] ?? '',
-      telefone: map['telefone'] ?? map['whatsapp'] ?? '',
-      whatsapp: map['whatsapp'] ?? map['telefone'] ?? '',
       endereco: map['endereco'] ?? '',
       numero: map['numero'] ?? '',
       bairro: map['bairro'] ?? '',
       cidade: map['cidade'] ?? '',
-      estado: map['estado'] ?? map['uf'] ?? '',
-      uf: map['uf'] ?? map['estado'] ?? '',
-      categoriaNegocio: map['categoriaNegocio'] ?? '',
-      horarioFuncionamento: map['horarioFuncionamento'] ?? '',
+      estado: map['estado'] ?? '',
+      categoria: map['categoria'] ?? '',
       logoUrl: map['logoUrl'] ?? '',
-      latitude: map['latitude'] != null
-          ? (map['latitude'] as num).toDouble()
-          : null,
-      longitude: map['longitude'] != null
-          ? (map['longitude'] as num).toDouble()
-          : null,
+      telefone: map['telefone'] ?? '',
+      whatsapp: map['whatsapp'] ?? '',
+      horarioFuncionamento: map['horarioFuncionamento'] ?? '',
       creditos: map['creditos'] ?? 100,
+      latitude: map['latitude']?.toDouble(),
+      longitude: map['longitude']?.toDouble(),
     );
   }
 }
