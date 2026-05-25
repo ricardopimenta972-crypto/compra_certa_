@@ -6,12 +6,12 @@ class Mercado {
   String bairro;
   String cidade;
   String estado;
-  String categoria;
+  String categoriaNegocio;
   String logoUrl;
   String telefone;
   String whatsapp;
   String horarioFuncionamento;
-  int creditos;
+  int creditosDisponiveis;
   double? latitude;
   double? longitude;
 
@@ -23,12 +23,12 @@ class Mercado {
     this.bairro = '',
     this.cidade = '',
     this.estado = '',
-    this.categoria = '',
+    this.categoriaNegocio = '',
     required this.logoUrl,
     required this.telefone,
     this.whatsapp = '',
     this.horarioFuncionamento = '',
-    this.creditos = 100,
+    this.creditosDisponiveis = 100,
     this.latitude,
     this.longitude,
   });
@@ -42,12 +42,12 @@ class Mercado {
       'bairro': bairro,
       'cidade': cidade,
       'estado': estado,
-      'categoria': categoria,
+      'categoriaNegocio': categoriaNegocio,
       'logoUrl': logoUrl,
       'telefone': telefone,
       'whatsapp': whatsapp,
       'horarioFuncionamento': horarioFuncionamento,
-      'creditos': creditos,
+      'creditosDisponiveis': creditosDisponiveis,
       'latitude': latitude,
       'longitude': longitude,
     };
@@ -62,12 +62,12 @@ class Mercado {
       bairro: map['bairro'] ?? '',
       cidade: map['cidade'] ?? '',
       estado: map['estado'] ?? '',
-      categoria: map['categoria'] ?? '',
+      categoriaNegocio: map['categoriaNegocio'] ?? map['categoria'] ?? '',
       logoUrl: map['logoUrl'] ?? '',
       telefone: map['telefone'] ?? '',
       whatsapp: map['whatsapp'] ?? '',
       horarioFuncionamento: map['horarioFuncionamento'] ?? '',
-      creditos: map['creditos'] ?? 100,
+      creditosDisponiveis: map['creditosDisponiveis'] ?? map['creditos'] ?? 100,
       latitude: map['latitude']?.toDouble(),
       longitude: map['longitude']?.toDouble(),
     );

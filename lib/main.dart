@@ -1099,10 +1099,10 @@ class _HomePageState extends State<HomePage> {
     _bairroMercadoController.text = _mercadoAtual?.bairro ?? '';
     _cidadeMercadoController.text = _mercadoAtual?.cidade ?? '';
     _estadoMercadoController.text = _mercadoAtual?.estado ?? '';
-    _categoriaMercadoController.text = _mercadoAtual?.categoria ?? '';
+    _categoriaMercadoController.text = _mercadoAtual?.categoriaNegocio ?? '';
     _horarioMercadoController.text = _mercadoAtual?.horarioFuncionamento ?? '';
     _creditosMercadoController.text =
-        _mercadoAtual?.creditos.toString() ?? '100';
+        _mercadoAtual?.creditosDisponiveis.toString() ?? '100';
     _logoMercadoController.text = _mercadoAtual?.logoUrl ?? '';
     _latitudeMercadoController.text = _mercadoAtual?.latitude?.toString() ?? '';
     _longitudeMercadoController.text =
@@ -1318,12 +1318,12 @@ class _HomePageState extends State<HomePage> {
                     bairro: bairro,
                     cidade: cidade,
                     estado: estado,
-                    categoria: categoria,
+                    categoriaNegocio: categoria,
                     logoUrl: logo,
                     telefone: telefone,
                     whatsapp: whatsapp,
                     horarioFuncionamento: horarioFuncionamento,
-                    creditos: creditos,
+                    creditosDisponiveis: creditos,
                     latitude: latitude,
                     longitude: longitude,
                   ),
