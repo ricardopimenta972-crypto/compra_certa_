@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../app_navigation.dart';
+import '../selecionar_localizacao_page.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CadastroMercadoPage extends StatefulWidget {
   const CadastroMercadoPage({super.key});
@@ -19,6 +21,9 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
   final bairroController = TextEditingController();
   final cidadeController = TextEditingController();
   final estadoController = TextEditingController();
+  final TextEditingController logoController = TextEditingController();
+  final TextEditingController latitudeController = TextEditingController();
+  final TextEditingController longitudeController = TextEditingController();
   String estadoSelecionado = 'GO';
 
   final List<String> estadosBrasil = [
@@ -106,6 +111,13 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
         'estado': estadoSelecionado,
         'categoriaNegocio': categoriaSelecionada,
         'horarioFuncionamento': horarioController.text.trim(),
+        'logoUrl': logoController.text.trim(),
+        'latitude': double.tryParse(
+          latitudeController.text.trim().replaceAll(',', '.'),
+        ),
+        'longitude': double.tryParse(
+          longitudeController.text.trim().replaceAll(',', '.'),
+        ),
         'uidDono': usuario.uid,
         'emailDono': usuario.email,
         'atualizadoEm': FieldValue.serverTimestamp(),
@@ -147,6 +159,21 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
         setState(() => carregando = false);
       }
     }
+  }
+
+  Future<String?> escolherImagemDoDispositivo() async {
+    final ImagePicker picker = ImagePicker();
+
+    final XFile? imagem = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (imagem == null) {
+      return null;
+    }
+
+    return imagem.path;
   }
 
   Widget campoTexto({
@@ -286,7 +313,6 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
               ],
             ),
 
-
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: DropdownButtonFormField<String>(
@@ -323,33 +349,63 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
             const SizedBox(height: 10),
 
             OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Localização no mapa será conectada aqui no próximo passo',
-                    ),
+              onPressed: () async {
+                final resultado = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SelecionarLocalizacaoPage(),
                   ),
                 );
+
+                if (resultado != null) {
+                  setState(() {
+                    latitudeController.text = resultado.latitude.toString();
+                    longitudeController.text = resultado.longitude.toString();
+                  });
+
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Localização selecionada com sucesso.'),
+                    ),
+                  );
+                }
               },
               icon: const Icon(Icons.place),
-              label: const Text('Selecionar localização no mapa'),
+              label: Text(
+                latitudeController.text.isEmpty
+                    ? 'Selecionar localização no mapa'
+                    : 'Localização selecionada',
+              ),
             ),
 
             const SizedBox(height: 10),
 
             OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Logo/fachada será conectada aqui no próximo passo',
+              onPressed: () async {
+                final imagem = await escolherImagemDoDispositivo();
+
+                if (imagem != null) {
+                  setState(() {
+                    logoController.text = imagem;
+                  });
+
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Logo/fachada selecionada com sucesso.'),
                     ),
-                  ),
-                );
+                  );
+                }
               },
               icon: const Icon(Icons.image),
-              label: const Text('Adicionar logo ou fachada'),
+              label: Text(
+                logoController.text.isEmpty
+                    ? 'Adicionar logo ou fachada'
+                    : 'Logo/fachada selecionada',
+              ),
             ),
 
             const SizedBox(height: 24),
