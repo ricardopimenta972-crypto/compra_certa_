@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_navigation.dart';
 import '../selecionar_localizacao_page.dart';
 import 'package:image_picker/image_picker.dart';
+import '../legal/termo_responsabilidade_pdv_page.dart';
 
 class CadastroMercadoPage extends StatefulWidget {
   const CadastroMercadoPage({super.key});
@@ -59,6 +60,7 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
 
   String categoriaSelecionada = 'Mercado / Supermercado';
   bool carregando = false;
+  bool aceitouTermoResponsabilidade = false;
 
   final List<String> categorias = [
     'Mercado / Supermercado',
@@ -71,6 +73,18 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
 
   Future<void> salvarMercado() async {
     final usuario = FirebaseAuth.instance.currentUser;
+
+    if (!aceitouTermoResponsabilidade) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Você precisa aceitar o Termo de Responsabilidade para continuar.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     if (usuario == null) {
       ScaffoldMessenger.of(
@@ -121,6 +135,9 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
         'uidDono': usuario.uid,
         'emailDono': usuario.email,
         'atualizadoEm': FieldValue.serverTimestamp(),
+        'aceitouTermoResponsabilidadePdv': true,
+        'versaoTermoResponsabilidadePdv': '1.0',
+        'dataAceiteTermoResponsabilidadePdv': FieldValue.serverTimestamp(),
       };
 
       if (!mercadoDoc.exists) {
@@ -409,6 +426,53 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
             ),
 
             const SizedBox(height: 24),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: aceitouTermoResponsabilidade,
+                  onChanged: (valor) {
+                    setState(() {
+                      aceitouTermoResponsabilidade = valor ?? false;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TermoResponsabilidadePdvPage(),
+                        ),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 12),
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'Li e aceito o ',
+                          children: [
+                            TextSpan(
+                              text:
+                                  'Termo de Responsabilidade de Publicação do PDV',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
 
             SizedBox(
               height: 54,
