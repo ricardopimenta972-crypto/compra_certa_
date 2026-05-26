@@ -15,6 +15,7 @@ import 'pdv/cadastro_mercado_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'legal/termo_uso_cliente_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,6 +88,13 @@ class _HomePageState extends State<HomePage> {
       TextEditingController();
   final TextEditingController _longitudeMercadoController =
       TextEditingController();
+
+  void _abrirTermoUsoCliente() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TermoUsoClientePage()),
+    );
+  }
 
   final List<String> _categorias = [
     'Geral',
@@ -190,6 +198,49 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _carregarProdutos();
     _carregarMercado();
+  }
+
+  Future<void> _verificarAceiteTermoCliente() async {
+    final prefs = await SharedPreferences.getInstance();
+    final aceitou = prefs.getBool('aceitou_termo_uso_cliente') ?? false;
+
+    if (!aceitou && mounted) {
+      Future.delayed(Duration.zero, () {
+        _mostrarDialogoTermoCliente();
+      });
+    }
+  }
+
+  void _mostrarDialogoTermoCliente() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Termos de uso e privacidade'),
+          content: const Text(
+            'Para usar o Compra Certa, é necessário ler e aceitar os Termos de Uso e Privacidade do cliente.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: _abrirTermoUsoCliente,
+              child: const Text('Ler termos'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('aceitou_termo_uso_cliente', true);
+
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Aceitar e continuar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

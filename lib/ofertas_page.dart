@@ -7,6 +7,7 @@ import 'produt.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth/login_page.dart';
+import 'legal/termo_uso_cliente_page.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -63,6 +64,61 @@ class _OfertasPageState extends State<OfertasPage> {
     super.initState();
     _carregarOfertas();
     _carregarPreferenciasLocalizacao();
+    _verificarAceiteTermoCliente();
+  }
+
+  Future<void> _verificarAceiteTermoCliente() async {
+    final prefs = await SharedPreferences.getInstance();
+    final aceitou = prefs.getBool('aceitou_termo_uso_cliente') ?? false;
+
+    if (!aceitou && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mostrarDialogoTermoCliente();
+      });
+    }
+  }
+
+  void _mostrarDialogoTermoCliente() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Termos de uso e privacidade'),
+          content: const Text(
+            'Para usar o Compra Certa, é necessário ler e aceitar os Termos de Uso e Privacidade do cliente.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TermoUsoClientePage(),
+                  ),
+                );
+              },
+              child: const Text('Ler termos'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('aceitou_termo_uso_cliente', true);
+                await prefs.setString('versao_termo_uso_cliente', '1.0');
+                await prefs.setString(
+                  'data_aceite_termo_uso_cliente',
+                  DateTime.now().toIso8601String(),
+                );
+
+                if (!mounted) return;
+                Navigator.of(context).pop();
+              },
+              child: const Text('Aceitar e continuar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _carregarPreferenciasLocalizacao() async {

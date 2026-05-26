@@ -95,13 +95,41 @@ Caso o PDV informe links externos, redes sociais, sites, telefones, aplicativos 
 
 O Compra Certa não se responsabiliza por conteúdos, ofertas, pagamentos, golpes, falhas, promessas ou negociações realizadas fora da Plataforma.
 
-17. ACEITE DO TERMO
+17. POLÍTICA DE CRÉDITOS, CANCELAMENTO E NÃO REEMBOLSO
+
+a) Os créditos adquiridos ou disponibilizados na Plataforma Compra Certa destinam-se exclusivamente à publicação de ofertas e utilização de recursos internos da Plataforma, não possuindo natureza de moeda, saldo financeiro, investimento ou garantia de retorno comercial.
+
+b) O PDV declara estar ciente de que a aquisição ou utilização de créditos não garante aumento de vendas, visitas, faturamento, clientes, visualizações ou qualquer resultado comercial específico.
+
+c) Uma vez utilizados para publicação de ofertas, ofertas relâmpago, destaques ou outros recursos da Plataforma, os créditos serão considerados consumidos e não serão reembolsáveis.
+
+d) O simples arrependimento, desistência, ausência de retorno comercial, erro de estratégia do PDV, publicação mal configurada pelo próprio PDV ou decisão de não continuar utilizando a Plataforma não gerará direito automático a reembolso de créditos adquiridos, utilizados ou disponíveis.
+
+e) Em caso de suspensão, bloqueio ou banimento do PDV por descumprimento deste Termo, publicação de informações falsas, abusivas, ilegais, enganosas, ofensivas, fraudulentas ou em desacordo com as regras da Plataforma, não haverá obrigação de reembolso dos créditos restantes.
+
+f) Créditos promocionais, gratuitos, bônus, créditos de lançamento ou concedidos por liberalidade da Plataforma não poderão ser convertidos em dinheiro, transferidos, sacados ou reembolsados.
+
+g) Caso seja constatado erro técnico comprovadamente causado pela Plataforma que impeça a utilização adequada de créditos pagos, o Compra Certa poderá, a seu critério, corrigir o problema, restabelecer créditos, conceder compensação equivalente em créditos ou adotar outra solução razoável, sem que isso implique obrigação automática de reembolso financeiro.
+
+h) O Compra Certa poderá alterar planos, valores, pacotes de créditos e regras comerciais futuras, respeitando os créditos já adquiridos e ainda disponíveis conforme as condições vigentes no momento da aquisição, salvo em casos de fraude, abuso ou violação deste Termo.
+
+18. ALTERAÇÕES E ATUALIZAÇÕES DESTE TERMO
+
+O Compra Certa poderá alterar, atualizar ou complementar este Termo a qualquer momento, especialmente para adequação legal, melhoria da Plataforma, inclusão de novas funcionalidades, alteração de regras comerciais, políticas de créditos, segurança, privacidade ou funcionamento do aplicativo.
+
+As alterações poderão ser comunicadas dentro da própria Plataforma, por aviso no aplicativo, tela de aceite, e-mail, mensagem ou outro meio disponível.
+
+A continuidade do uso da Plataforma após a disponibilização da versão atualizada do Termo representará ciência e concordância com as novas condições.
+
+Quando a alteração for considerada relevante, o Compra Certa poderá solicitar novo aceite do usuário ou do PDV antes da continuidade do uso de determinadas funcionalidades.
+
+19. ACEITE DO TERMO
 
 O uso da Plataforma, o cadastro do PDV e a publicação de ofertas representam aceite integral deste Termo de Responsabilidade.
 
 Ao prosseguir, o PDV declara que leu, entendeu e aceita integralmente este Termo.
 
-18. FORO
+20. FORO
 
 Para dirimir controvérsias relacionadas a este Termo, fica eleito o Foro da Comarca de Goianésia - GO, salvo quando a legislação aplicável determinar competência obrigatória diversa.
 ''';
