@@ -16,6 +16,8 @@ class OfertasPage extends StatefulWidget {
 }
 
 class _OfertasPageState extends State<OfertasPage> {
+  bool _aceitouResponsabilidadeOferta = false;
+
   Future<void> _abrirMapa(Produto produto) async {
     Uri url;
 
@@ -860,6 +862,97 @@ class _OfertasPageState extends State<OfertasPage> {
     );
   }
 
+  void _denunciarOferta(Produto produto) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        String motivoSelecionado = 'Preço incorreto';
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Denunciar oferta'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Informe o motivo da denúncia. Nossa equipe poderá revisar esta oferta.',
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: motivoSelecionado,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Preço incorreto',
+                        child: Text('Preço incorreto'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Oferta vencida',
+                        child: Text('Oferta vencida'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Produto indisponível',
+                        child: Text('Produto indisponível'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Imagem ou descrição incorreta',
+                        child: Text('Imagem ou descrição incorreta'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Outro motivo',
+                        child: Text('Outro motivo'),
+                      ),
+                    ],
+                    onChanged: (valor) {
+                      setStateDialog(() {
+                        motivoSelecionado = valor ?? 'Preço incorreto';
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await FirebaseFirestore.instance
+                        .collection('denuncias_ofertas')
+                        .add({
+                          'produtoId': produto.produtoId,
+                          'nomeProduto': produto.nome,
+                          'mercado': produto.mercado,
+                          'mercadoUid': produto.mercadoUid,
+                          'motivo': motivoSelecionado,
+                          'status': 'pendente',
+                          'criadoEm': FieldValue.serverTimestamp(),
+                        });
+
+                    if (!mounted) return;
+
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Denúncia enviada para análise. Obrigado pelo aviso.',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  child: const Text('Enviar denúncia'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildOfertaCard(Produto produto) {
     final menorPreco = _ehMenorPreco(produto);
     final distancia = _distanciaDoProdutoKm(produto);
@@ -962,6 +1055,7 @@ class _OfertasPageState extends State<OfertasPage> {
                     ],
                   ),
                 ),
+
                 if (menorPreco)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -989,30 +1083,52 @@ class _OfertasPageState extends State<OfertasPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Container(
-                  width: 122,
-                  height: 122,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.green.shade100),
-                  ),
-                  child: produto.imagemUrl.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: _imagemDaOferta(
-                            produto.imagemUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.image_outlined,
-                          size: 44,
-                          color: Colors.green,
-                        ),
+                Column(
+                  children: [
+                    Container(
+                      width: 122,
+                      height: 122,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.green.shade100),
+                      ),
+                      child: produto.imagemUrl.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: _imagemDaOferta(
+                                produto.imagemUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.image_outlined,
+                              size: 44,
+                              color: Colors.green,
+                            ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    TextButton.icon(
+                      onPressed: () => _denunciarOferta(produto),
+                      icon: const Icon(Icons.flag_outlined, size: 14),
+                      label: const Text(
+                        'Denunciar',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 24),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
                 ),
+
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

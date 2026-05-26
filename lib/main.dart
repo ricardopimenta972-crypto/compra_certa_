@@ -53,6 +53,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _aceitouResponsabilidadeOferta = false;
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _precoController = TextEditingController();
   final TextEditingController _mercadoController = TextEditingController();
@@ -600,6 +601,14 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    if (!_aceitouResponsabilidadeOferta) {
+      _mostrarMensagem(
+        'Para publicar a oferta, confirme a declaração de responsabilidade do PDV.',
+        corFundo: Colors.red,
+      );
+      return;
+    }
+
     final creditoConsumido = await _consumirCreditoPublicacao(
       ehRelampago: _ehRelampago,
     );
@@ -647,6 +656,7 @@ class _HomePageState extends State<HomePage> {
       _horaInicioRelampago = null;
       _horaFimRelampago = null;
       _mostrarFormularioCadastro = false;
+      _aceitouResponsabilidadeOferta = false;
     });
 
     _salvarProdutos();
@@ -2114,6 +2124,23 @@ class _HomePageState extends State<HomePage> {
                 ],
 
                 const SizedBox(height: 15),
+
+                CheckboxListTile(
+                  value: _aceitouResponsabilidadeOferta,
+                  onChanged: (valor) {
+                    setState(() {
+                      _aceitouResponsabilidadeOferta = valor ?? false;
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Declaro que preço, validade, estoque, imagem e descrição desta oferta são responsabilidade do PDV.',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
 
                 Row(
                   children: [
