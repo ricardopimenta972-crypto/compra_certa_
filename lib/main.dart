@@ -846,17 +846,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _editarProduto(int index) {
-    final nomeController = TextEditingController(text: _produtos[index].nome);
+    final produtoAtual = _produtos[index];
+
+    final nomeController = TextEditingController(text: produtoAtual.nome);
     final precoController = TextEditingController(
-      text: _formatarPreco(_produtos[index].preco),
+      text: _formatarPreco(produtoAtual.preco),
     );
     final mercadoController = TextEditingController(
-      text: _produtos[index].mercado == 'Sem mercado'
-          ? ''
-          : _produtos[index].mercado,
+      text: produtoAtual.mercado == 'Sem mercado' ? '' : produtoAtual.mercado,
     );
 
-    String categoriaEditada = _produtos[index].categoria;
+    String categoriaEditada = produtoAtual.categoria;
+    String imagemEditada = produtoAtual.imagemUrl;
+    DateTime? validadeEditada = produtoAtual.validade;
+    bool enquantoDurarEditado = produtoAtual.enquantoDurar;
+    bool ehRelampagoEditado = produtoAtual.ehRelampago;
+    DateTime? inicioRelampagoEditado = produtoAtual.inicioProgramado;
+    DateTime? fimRelampagoEditado = produtoAtual.fimProgramado;
 
     if (!_categorias.contains(categoriaEditada)) {
       categoriaEditada = 'Geral';
@@ -869,52 +875,261 @@ class _HomePageState extends State<HomePage> {
           title: const Text('Editar produto'),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nomeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome do produto',
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nomeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome do produto',
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: precoController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: precoController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(labelText: 'Preço'),
                       ),
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(labelText: 'Preço'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: mercadoController,
-                      textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Mercado',
-                        hintText: 'Ex: Supermercado Brasil',
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: mercadoController,
+                        decoration: const InputDecoration(
+                          labelText: 'Mercado',
+                          hintText: 'Ex: Supermercado Brasil',
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: categoriaEditada,
-                      decoration: const InputDecoration(labelText: 'Categoria'),
-                      items: _categorias.map((categoria) {
-                        return DropdownMenuItem<String>(
-                          value: categoria,
-                          child: Text(categoria),
-                        );
-                      }).toList(),
-                      onChanged: (valor) {
-                        if (valor == null) return;
-                        setStateDialog(() {
-                          categoriaEditada = valor;
-                        });
-                      },
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+
+                      DropdownButtonFormField<String>(
+                        value: categoriaEditada,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoria',
+                        ),
+                        items: _categorias.map((categoria) {
+                          return DropdownMenuItem<String>(
+                            value: categoria,
+                            child: Text(categoria),
+                          );
+                        }).toList(),
+                        onChanged: (valor) {
+                          if (valor == null) return;
+                          setStateDialog(() {
+                            categoriaEditada = valor;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Enquanto durar o estoque'),
+                        value: enquantoDurarEditado,
+                        onChanged: (valor) {
+                          setStateDialog(() {
+                            enquantoDurarEditado = valor;
+                            if (valor) {
+                              validadeEditada = null;
+                            }
+                          });
+                        },
+                      ),
+
+                      if (!enquantoDurarEditado) ...[
+                        const SizedBox(height: 8),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.calendar_month),
+                          title: const Text('Validade da oferta'),
+                          subtitle: Text(
+                            validadeEditada == null
+                                ? 'Sem validade definida'
+                                : '${validadeEditada!.day.toString().padLeft(2, '0')}/${validadeEditada!.month.toString().padLeft(2, '0')}/${validadeEditada!.year}',
+                          ),
+                          trailing: const Icon(Icons.edit_calendar),
+                          onTap: () async {
+                            final dataSelecionada = await showDatePicker(
+                              context: context,
+                              initialDate: validadeEditada ?? DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+
+                            if (dataSelecionada != null) {
+                              setStateDialog(() {
+                                validadeEditada = dataSelecionada;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      const SizedBox(height: 16),
+
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Oferta relâmpago'),
+                        subtitle: const Text(
+                          'Destacar esta oferta por tempo limitado',
+                        ),
+                        value: ehRelampagoEditado,
+                        onChanged: (valor) {
+                          setStateDialog(() {
+                            ehRelampagoEditado = valor;
+
+                            if (valor) {
+                              inicioRelampagoEditado ??= DateTime.now();
+                              fimRelampagoEditado ??= DateTime.now().add(
+                                const Duration(hours: 1),
+                              );
+                            } else {
+                              inicioRelampagoEditado = null;
+                              fimRelampagoEditado = null;
+                            }
+                          });
+                        },
+                      ),
+
+                      if (ehRelampagoEditado) ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.flash_on),
+                          title: const Text('Início da relâmpago'),
+                          subtitle: Text(
+                            inicioRelampagoEditado == null
+                                ? 'Não definido'
+                                : '${inicioRelampagoEditado!.day.toString().padLeft(2, '0')}/${inicioRelampagoEditado!.month.toString().padLeft(2, '0')}/${inicioRelampagoEditado!.year} ${inicioRelampagoEditado!.hour.toString().padLeft(2, '0')}:${inicioRelampagoEditado!.minute.toString().padLeft(2, '0')}',
+                          ),
+                          trailing: const Icon(Icons.schedule),
+                          onTap: () async {
+                            final data = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  inicioRelampagoEditado ?? DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+
+                            if (data == null) return;
+
+                            final hora = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(
+                                inicioRelampagoEditado ?? DateTime.now(),
+                              ),
+                            );
+
+                            if (hora == null) return;
+
+                            setStateDialog(() {
+                              inicioRelampagoEditado = DateTime(
+                                data.year,
+                                data.month,
+                                data.day,
+                                hora.hour,
+                                hora.minute,
+                              );
+                            });
+                          },
+                        ),
+
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.timer_off_outlined),
+                          title: const Text('Fim da relâmpago'),
+                          subtitle: Text(
+                            fimRelampagoEditado == null
+                                ? 'Não definido'
+                                : '${fimRelampagoEditado!.day.toString().padLeft(2, '0')}/${fimRelampagoEditado!.month.toString().padLeft(2, '0')}/${fimRelampagoEditado!.year} ${fimRelampagoEditado!.hour.toString().padLeft(2, '0')}:${fimRelampagoEditado!.minute.toString().padLeft(2, '0')}',
+                          ),
+                          trailing: const Icon(Icons.schedule),
+                          onTap: () async {
+                            final data = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  fimRelampagoEditado ??
+                                  DateTime.now().add(const Duration(hours: 1)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+
+                            if (data == null) return;
+
+                            final hora = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(
+                                fimRelampagoEditado ??
+                                    DateTime.now().add(
+                                      const Duration(hours: 1),
+                                    ),
+                              ),
+                            );
+
+                            if (hora == null) return;
+
+                            setStateDialog(() {
+                              fimRelampagoEditado = DateTime(
+                                data.year,
+                                data.month,
+                                data.day,
+                                hora.hour,
+                                hora.minute,
+                              );
+                            });
+                          },
+                        ),
+                      ],
+
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.image_outlined),
+                        label: Text(
+                          imagemEditada.isEmpty
+                              ? 'Adicionar imagem'
+                              : 'Trocar imagem',
+                        ),
+                        onPressed: () async {
+                          final imagem = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 75,
+                          );
+
+                          if (imagem == null) return;
+
+                          setStateDialog(() {
+                            imagemEditada = imagem.path;
+                          });
+                        },
+                      ),
+
+                      if (imagemEditada.isNotEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Imagem selecionada.',
+                            style: TextStyle(color: Colors.green),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -956,12 +1171,24 @@ class _HomePageState extends State<HomePage> {
                   _produtos[index].mercado = novoMercadoTexto.isEmpty
                       ? 'Sem mercado'
                       : novoMercadoTexto;
+                  _produtos[index].validade = validadeEditada;
+                  _produtos[index].enquantoDurar = enquantoDurarEditado;
+                  _produtos[index].imagemUrl = imagemEditada;
+                  _produtos[index].ehRelampago = ehRelampagoEditado;
+                  _produtos[index].inicioProgramado = inicioRelampagoEditado;
+                  _produtos[index].fimProgramado = fimRelampagoEditado;
+
+                  // Reativa a oferta quando ela é renovada/editada.
+                  _produtos[index].ehOferta = true;
+                  _produtos[index].statusOferta = 'ativa';
+
                   _ordenarProdutos();
                 });
 
                 _salvarProdutos();
+
                 Navigator.of(context).pop();
-                _mostrarMensagem('Produto atualizado com sucesso.');
+                _mostrarMensagem('Oferta atualizada com sucesso.');
               },
               child: const Text('Salvar'),
             ),

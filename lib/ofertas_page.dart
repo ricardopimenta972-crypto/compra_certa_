@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth/login_page.dart';
 import 'legal/termo_uso_cliente_page.dart';
+import 'legal/termos_page.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -456,7 +457,7 @@ class _OfertasPageState extends State<OfertasPage> {
       body: RefreshIndicator(
         onRefresh: _carregarOfertas,
         child: ListView(
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.only(bottom: 48),
           children: [
             _buildTopo(),
             Padding(
@@ -597,6 +598,18 @@ class _OfertasPageState extends State<OfertasPage> {
                           'Contato do suporte será adicionado em breve.',
                         ),
                       ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Termos'),
+                  subtitle: const Text('Termos do cliente e do PDV'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TermosPage()),
                     );
                   },
                 ),
@@ -981,8 +994,15 @@ class _OfertasPageState extends State<OfertasPage> {
                           'nomeProduto': produto.nome,
                           'mercado': produto.mercado,
                           'mercadoUid': produto.mercadoUid,
+
+                          'preco': produto.preco,
+                          'categoria': produto.categoria,
+                          'imagemUrl': produto.imagemUrl,
+
                           'motivo': motivoSelecionado,
+
                           'status': 'pendente',
+
                           'criadoEm': FieldValue.serverTimestamp(),
                         });
 
