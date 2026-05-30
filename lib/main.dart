@@ -96,6 +96,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _voltarParaConsumidor() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const OfertasPage()),
+    );
+  }
+
   final List<String> _categorias = [
     'Geral',
     'Alimentação',
@@ -2156,374 +2163,392 @@ class _HomePageState extends State<HomePage> {
 
     int contadorAnimacao = 0;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
+    return WillPopScope(
+      onWillPop: () async {
+        _voltarParaConsumidor();
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
 
-      appBar: AppBar(
-        title: const Text(
-          'Compra Certa',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Ver ofertas',
+            onPressed: _voltarParaConsumidor,
+          ),
+          title: const Text(
+            'Compra Certa',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              onPressed: _abrirCadastroMercado,
+              icon: const Icon(Icons.store),
+              tooltip: 'Mercados cadastrados',
+            ),
+            IconButton(
+              onPressed: _alternarBusca,
+              icon: Icon(_mostrarBusca ? Icons.close : Icons.search),
+              tooltip: _mostrarBusca ? 'Fechar busca' : 'Abrir busca',
+            ),
+            IconButton(
+              onPressed: _confirmarLimparLista,
+              icon: const Icon(Icons.delete_sweep),
+              tooltip: 'Limpar lista',
+            ),
+            IconButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+
+                if (!mounted) return;
+
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                );
+              },
+              icon: const Icon(Icons.logout),
+              tooltip: 'Sair',
+            ),
+          ],
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: _abrirCadastroMercado,
-            icon: const Icon(Icons.store),
-            tooltip: 'Mercados cadastrados',
-          ),
-          IconButton(
-            onPressed: _alternarBusca,
-            icon: Icon(_mostrarBusca ? Icons.close : Icons.search),
-            tooltip: _mostrarBusca ? 'Fechar busca' : 'Abrir busca',
-          ),
-          IconButton(
-            onPressed: _confirmarLimparLista,
-            icon: const Icon(Icons.delete_sweep),
-            tooltip: 'Limpar lista',
-          ),
-          IconButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
 
-              if (!mounted) return;
-
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-              );
-            },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
-          ),
-        ],
-      ),
-
-      body: Column(
-        children: [
-          Column(
-            children: [
-              /// ===== ETAPA 1 =====
-              if (_mostrarFormularioCadastro && _etapaCadastro == 1) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: _input('Digite um produto...'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      width: 100,
-                      child: TextField(
-                        controller: _precoController,
-                        keyboardType: TextInputType.number,
-                        decoration: _input('R\$'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                DropdownButtonFormField<String>(
-                  value: _unidadeSelecionada,
-                  decoration: _input('Unidade'),
-                  items: _unidadesMedida.map((unidade) {
-                    return DropdownMenuItem(
-                      value: unidade,
-                      child: Text(unidade),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _unidadeSelecionada = value!;
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 10),
-
-                DropdownButtonFormField<String>(
-                  value: _categoriaSelecionada,
-                  decoration: _input(null),
-                  items: _categorias.map((c) {
-                    return DropdownMenuItem(value: c, child: Text(c));
-                  }).toList(),
-                  onChanged: (v) => setState(() => _categoriaSelecionada = v!),
-                ),
-
-                const SizedBox(height: 10),
-
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final caminhoImagem =
-                            await escolherImagemDoDispositivo();
-
-                        if (caminhoImagem != null) {
-                          setState(() {
-                            _imagemController.text = caminhoImagem;
-                          });
-                        }
-                      },
-
-                      icon: const Icon(Icons.add_photo_alternate),
-
-                      label: const Text('Selecionar imagem da oferta'),
-                    ),
-
-                    if (_imagemController.text.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-
-                          child: Image.file(
-                            File(_imagemController.text),
-
-                            height: 126,
-                            width: 126,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 15),
-
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _etapaCadastro = 2;
-                    });
-                  },
-                  child: const Text('Próximo'),
-                ),
-              ],
-
-              /// ===== ETAPA 2 =====
-              if (_etapaCadastro == 2) ...[
-                const SizedBox(height: 4),
-
-                ...[
+        body: Column(
+          children: [
+            Column(
+              children: [
+                /// ===== ETAPA 1 =====
+                if (_mostrarFormularioCadastro && _etapaCadastro == 1) ...[
                   Row(
                     children: [
-                      Checkbox(
-                        value: _ehRelampago,
-                        onChanged: (v) =>
-                            setState(() => _ehRelampago = v ?? false),
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          decoration: _input('Digite um produto...'),
+                        ),
                       ),
-                      const Text(
-                        '⚡ Oferta relâmpago',
-                        style: TextStyle(
-                          color: Colors.deepPurple,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 100,
+                        child: TextField(
+                          controller: _precoController,
+                          keyboardType: TextInputType.number,
+                          decoration: _input('R\$'),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
 
-                  if (_ehRelampago)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final h = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.now(),
-                              );
-                              if (h != null) {
-                                setState(() => _horaInicioRelampago = h);
-                              }
-                            },
-                            child: Text(
-                              _horaInicioRelampago == null
-                                  ? 'Início'
-                                  : _horaInicioRelampago!.format(context),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final h = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.now(),
-                              );
-                              if (h != null) {
-                                setState(() => _horaFimRelampago = h);
-                              }
-                            },
-                            child: Text(
-                              _horaFimRelampago == null
-                                  ? 'Fim'
-                                  : _horaFimRelampago!.format(context),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  DropdownButtonFormField<String>(
+                    value: _unidadeSelecionada,
+                    decoration: _input('Unidade'),
+                    items: _unidadesMedida.map((unidade) {
+                      return DropdownMenuItem(
+                        value: unidade,
+                        child: Text(unidade),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _unidadeSelecionada = value!;
+                      });
+                    },
+                  ),
 
-                  Row(
+                  const SizedBox(height: 10),
+
+                  DropdownButtonFormField<String>(
+                    value: _categoriaSelecionada,
+                    decoration: _input(null),
+                    items: _categorias.map((c) {
+                      return DropdownMenuItem(value: c, child: Text(c));
+                    }).toList(),
+                    onChanged: (v) =>
+                        setState(() => _categoriaSelecionada = v!),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Checkbox(
-                        value: _enquantoDurar,
-                        onChanged: (v) =>
-                            setState(() => _enquantoDurar = v ?? false),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final caminhoImagem =
+                              await escolherImagemDoDispositivo();
+
+                          if (caminhoImagem != null) {
+                            setState(() {
+                              _imagemController.text = caminhoImagem;
+                            });
+                          }
+                        },
+
+                        icon: const Icon(Icons.add_photo_alternate),
+
+                        label: const Text('Selecionar imagem da oferta'),
                       ),
-                      const Text(
-                        'Enquanto durar o estoque',
-                        style: TextStyle(
-                          color: Colors.deepPurple,
-                          fontWeight: FontWeight.bold,
+
+                      if (_imagemController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+
+                            child: Image.file(
+                              File(_imagemController.text),
+
+                              height: 126,
+                              width: 126,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
 
-                  if (!_enquantoDurar)
-                    DropdownButtonFormField<int>(
-                      value: _duracaoSelecionada,
-                      decoration: _input(null),
-                      items: const [
-                        DropdownMenuItem(value: 1, child: Text('24 horas')),
-                        DropdownMenuItem(value: 3, child: Text('3 dias')),
-                        DropdownMenuItem(value: 7, child: Text('7 dias')),
-                      ],
-                      onChanged: (v) =>
-                          setState(() => _duracaoSelecionada = v!),
-                    ),
+                  const SizedBox(height: 15),
+
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _etapaCadastro = 2;
+                      });
+                    },
+                    child: const Text('Próximo'),
+                  ),
                 ],
 
-                const SizedBox(height: 15),
+                /// ===== ETAPA 2 =====
+                if (_etapaCadastro == 2) ...[
+                  const SizedBox(height: 4),
 
-                CheckboxListTile(
-                  value: _aceitouResponsabilidadeOferta,
+                  ...[
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _ehRelampago,
+                          onChanged: (v) =>
+                              setState(() => _ehRelampago = v ?? false),
+                        ),
+                        const Text(
+                          '⚡ Oferta relâmpago',
+                          style: TextStyle(
+                            color: Colors.deepPurple,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (_ehRelampago)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final h = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (h != null) {
+                                  setState(() => _horaInicioRelampago = h);
+                                }
+                              },
+                              child: Text(
+                                _horaInicioRelampago == null
+                                    ? 'Início'
+                                    : _horaInicioRelampago!.format(context),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final h = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (h != null) {
+                                  setState(() => _horaFimRelampago = h);
+                                }
+                              },
+                              child: Text(
+                                _horaFimRelampago == null
+                                    ? 'Fim'
+                                    : _horaFimRelampago!.format(context),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _enquantoDurar,
+                          onChanged: (v) =>
+                              setState(() => _enquantoDurar = v ?? false),
+                        ),
+                        const Text(
+                          'Enquanto durar o estoque',
+                          style: TextStyle(
+                            color: Colors.deepPurple,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (!_enquantoDurar)
+                      DropdownButtonFormField<int>(
+                        value: _duracaoSelecionada,
+                        decoration: _input(null),
+                        items: const [
+                          DropdownMenuItem(value: 1, child: Text('24 horas')),
+                          DropdownMenuItem(value: 3, child: Text('3 dias')),
+                          DropdownMenuItem(value: 7, child: Text('7 dias')),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _duracaoSelecionada = v!),
+                      ),
+                  ],
+
+                  const SizedBox(height: 15),
+
+                  CheckboxListTile(
+                    value: _aceitouResponsabilidadeOferta,
+                    onChanged: (valor) {
+                      setState(() {
+                        _aceitouResponsabilidadeOferta = valor ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      'Declaro que preço, validade, estoque, imagem e descrição desta oferta são responsabilidade do PDV.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _etapaCadastro = 1;
+                            });
+                          },
+                          child: const Text('Voltar'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _adicionarProduto,
+                          child: const Text('Finalizar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+
+            _buildMercadoAtivoCard(),
+            _buildFiltroCategorias(),
+            if (_mostrarBusca)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: TextField(
+                  controller: _buscaController,
                   onChanged: (valor) {
                     setState(() {
-                      _aceitouResponsabilidadeOferta = valor ?? false;
+                      _busca = valor;
                     });
                   },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    'Declaro que preço, validade, estoque, imagem e descrição desta oferta são responsabilidade do PDV.',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _etapaCadastro = 1;
-                          });
-                        },
-                        child: const Text('Voltar'),
-                      ),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar produto ou mercado...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _busca.isNotEmpty
+                        ? IconButton(
+                            onPressed: _limparBusca,
+                            icon: const Icon(Icons.clear),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _adicionarProduto,
-                        child: const Text('Finalizar'),
-                      ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-
-          _buildMercadoAtivoCard(),
-          _buildFiltroCategorias(),
-          if (_mostrarBusca)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: TextField(
-                controller: _buscaController,
-                onChanged: (valor) {
-                  setState(() {
-                    _busca = valor;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Buscar produto ou mercado...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _busca.isNotEmpty
-                      ? IconButton(
-                          onPressed: _limparBusca,
-                          icon: const Icon(Icons.clear),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
-            ),
-          Expanded(
-            child: produtosFiltrados.isEmpty
-                ? Center(
-                    child: Text(
-                      _produtos.isEmpty
-                          ? 'Nenhum produto ainda'
-                          : 'Nenhum produto encontrado',
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.all(12),
-                    children: [
-                      if (_produtos.isNotEmpty) ...[
-                        _buildCardCreditosMercado(),
-                        const SizedBox(height: 12),
+            Expanded(
+              child: produtosFiltrados.isEmpty
+                  ? Center(
+                      child: Text(
+                        _produtos.isEmpty
+                            ? 'Nenhum produto ainda'
+                            : 'Nenhum produto encontrado',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(12),
+                      children: [
+                        if (_produtos.isNotEmpty) ...[
+                          _buildCardCreditosMercado(),
+                          const SizedBox(height: 12),
 
-                        _buildCabecalhoSecao('Ofertas publicadas'),
-                        ..._produtos.map((produto) {
-                          final indiceReal = _produtos.indexOf(produto);
-                          final widget = _buildCardProduto(
-                            produto,
-                            indiceReal,
-                            contadorAnimacao,
-                          );
-                          contadorAnimacao++;
-                          return widget;
-                        }),
+                          _buildCabecalhoSecao('Ofertas publicadas'),
+                          ..._produtos.map((produto) {
+                            final indiceReal = _produtos.indexOf(produto);
+                            final widget = _buildCardProduto(
+                              produto,
+                              indiceReal,
+                              contadorAnimacao,
+                            );
+                            contadorAnimacao++;
+                            return widget;
+                          }),
+                        ],
                       ],
-                    ],
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.green,
-        onPressed: () {
-          setState(() {
-            _mostrarFormularioCadastro = !_mostrarFormularioCadastro;
-            if (_mostrarFormularioCadastro) {
-              _etapaCadastro = 1;
-            }
-          });
-        },
-        child: Icon(_mostrarFormularioCadastro ? Icons.close : Icons.add),
+                    ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.green,
+          onPressed: () {
+            setState(() {
+              _mostrarFormularioCadastro = !_mostrarFormularioCadastro;
+              if (_mostrarFormularioCadastro) {
+                _etapaCadastro = 1;
+              }
+            });
+          },
+          child: Icon(_mostrarFormularioCadastro ? Icons.close : Icons.add),
+        ),
       ),
     );
   }

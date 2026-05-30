@@ -9,6 +9,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth/login_page.dart';
 import 'legal/termo_uso_cliente_page.dart';
 import 'legal/termos_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'app_navigation.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -578,12 +580,23 @@ class _OfertasPageState extends State<OfertasPage> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.store),
-                  title: const Text('Entrar / criar conta de mercado'),
+                  title: Text(
+                    FirebaseAuth.instance.currentUser == null
+                        ? 'Entrar / criar conta de mercado'
+                        : 'Meu PDV',
+                  ),
                   onTap: () {
                     Navigator.pop(context);
+
+                    final usuario = FirebaseAuth.instance.currentUser;
+
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                      MaterialPageRoute(
+                        builder: (_) => usuario == null
+                            ? const LoginPage()
+                            : const AppNavigation(),
+                      ),
                     );
                   },
                 ),
