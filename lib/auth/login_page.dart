@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_navigation.dart';
 import '../pdv/cadastro_mercado_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,6 +18,28 @@ class _LoginPageState extends State<LoginPage> {
 
   bool carregando = false;
   bool modoCriarConta = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarUltimoEmail();
+  }
+
+  Future<void> _carregarUltimoEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ultimoEmail = prefs.getString('ultimo_email_login') ?? '';
+
+    if (!mounted) return;
+
+    setState(() {
+      emailController.text = ultimoEmail;
+    });
+  }
+
+  Future<void> _salvarUltimoEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ultimo_email_login', emailController.text.trim());
+  }
 
   bool _camposValidos() {
     final email = emailController.text.trim();
@@ -60,6 +83,8 @@ class _LoginPageState extends State<LoginPage> {
         email: emailController.text.trim(),
         password: senhaController.text.trim(),
       );
+
+      await _salvarUltimoEmail();
 
       final usuario = FirebaseAuth.instance.currentUser;
 
@@ -123,6 +148,8 @@ class _LoginPageState extends State<LoginPage> {
         email: emailController.text.trim(),
         password: senhaController.text.trim(),
       );
+
+      await _salvarUltimoEmail();
 
       final usuario = FirebaseAuth.instance.currentUser;
 

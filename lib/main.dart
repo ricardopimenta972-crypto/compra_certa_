@@ -62,32 +62,32 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _buscaController = TextEditingController();
   final TextEditingController _nomeMercadoController = TextEditingController();
   final TextEditingController _enderecoMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _logoMercadoController = TextEditingController();
   final TextEditingController _telefoneMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _responsavelMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _whatsappMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _numeroMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _bairroMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _cidadeMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _estadoMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _categoriaMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _horarioMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _creditosMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _latitudeMercadoController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _longitudeMercadoController =
-      TextEditingController();
+  TextEditingController();
 
   void _abrirTermoUsoCliente() {
     Navigator.push(
@@ -384,7 +384,7 @@ class _HomePageState extends State<HomePage> {
 
       final dados = mercadoSnapshot.data() as Map<String, dynamic>;
       final int creditosDisponiveis =
-          (dados['creditosDisponiveis'] ?? 0) as int;
+      (dados['creditosDisponiveis'] ?? 0) as int;
 
       if (creditosDisponiveis < custo) {
         if (!mounted) return false;
@@ -884,11 +884,14 @@ class _HomePageState extends State<HomePage> {
             builder: (context, setStateDialog) {
               return Padding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  bottom: MediaQuery
+                      .of(context)
+                      .viewInsets
+                      .bottom,
                 ),
                 child: SingleChildScrollView(
                   keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  ScrollViewKeyboardDismissBehavior.onDrag,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -962,7 +965,11 @@ class _HomePageState extends State<HomePage> {
                           subtitle: Text(
                             validadeEditada == null
                                 ? 'Sem validade definida'
-                                : '${validadeEditada!.day.toString().padLeft(2, '0')}/${validadeEditada!.month.toString().padLeft(2, '0')}/${validadeEditada!.year}',
+                                : '${validadeEditada!.day.toString().padLeft(
+                                2, '0')}/${validadeEditada!
+                                .month
+                                .toString()
+                                .padLeft(2, '0')}/${validadeEditada!.year}',
                           ),
                           trailing: const Icon(Icons.edit_calendar),
                           onTap: () async {
@@ -1020,14 +1027,24 @@ class _HomePageState extends State<HomePage> {
                           subtitle: Text(
                             inicioRelampagoEditado == null
                                 ? 'Não definido'
-                                : '${inicioRelampagoEditado!.day.toString().padLeft(2, '0')}/${inicioRelampagoEditado!.month.toString().padLeft(2, '0')}/${inicioRelampagoEditado!.year} ${inicioRelampagoEditado!.hour.toString().padLeft(2, '0')}:${inicioRelampagoEditado!.minute.toString().padLeft(2, '0')}',
+                                : '${inicioRelampagoEditado!
+                                .day
+                                .toString()
+                                .padLeft(2, '0')}/${inicioRelampagoEditado!
+                                .month.toString().padLeft(
+                                2, '0')}/${inicioRelampagoEditado!
+                                .year} ${inicioRelampagoEditado!
+                                .hour
+                                .toString()
+                                .padLeft(2, '0')}:${inicioRelampagoEditado!
+                                .minute.toString().padLeft(2, '0')}',
                           ),
                           trailing: const Icon(Icons.schedule),
                           onTap: () async {
                             final data = await showDatePicker(
                               context: context,
                               initialDate:
-                                  inicioRelampagoEditado ?? DateTime.now(),
+                              inicioRelampagoEditado ?? DateTime.now(),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(
                                 const Duration(days: 365),
@@ -1064,14 +1081,24 @@ class _HomePageState extends State<HomePage> {
                           subtitle: Text(
                             fimRelampagoEditado == null
                                 ? 'Não definido'
-                                : '${fimRelampagoEditado!.day.toString().padLeft(2, '0')}/${fimRelampagoEditado!.month.toString().padLeft(2, '0')}/${fimRelampagoEditado!.year} ${fimRelampagoEditado!.hour.toString().padLeft(2, '0')}:${fimRelampagoEditado!.minute.toString().padLeft(2, '0')}',
+                                : '${fimRelampagoEditado!
+                                .day
+                                .toString()
+                                .padLeft(2, '0')}/${fimRelampagoEditado!.month
+                                .toString().padLeft(
+                                2, '0')}/${fimRelampagoEditado!
+                                .year} ${fimRelampagoEditado!
+                                .hour
+                                .toString()
+                                .padLeft(2, '0')}:${fimRelampagoEditado!.minute
+                                .toString().padLeft(2, '0')}',
                           ),
                           trailing: const Icon(Icons.schedule),
                           onTap: () async {
                             final data = await showDatePicker(
                               context: context,
                               initialDate:
-                                  fimRelampagoEditado ??
+                              fimRelampagoEditado ??
                                   DateTime.now().add(const Duration(hours: 1)),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(
@@ -1218,150 +1245,152 @@ class _HomePageState extends State<HomePage> {
                 child: _mercados.isEmpty
                     ? const Text('Nenhum mercado cadastrado ainda.')
                     : ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: _mercados.length,
-                        separatorBuilder: (_, __) => const Divider(),
-                        itemBuilder: (context, index) {
-                          final mercado = _mercados[index];
-                          final selecionado =
-                              _mercadoAtual?.nome == mercado.nome;
+                  shrinkWrap: true,
+                  itemCount: _mercados.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final mercado = _mercados[index];
+                    final selecionado =
+                        _mercadoAtual?.nome == mercado.nome;
 
-                          return ListTile(
-                            leading: Icon(
-                              selecionado ? Icons.check_circle : Icons.store,
-                              color: selecionado ? Colors.green : Colors.grey,
-                            ),
-                            title: Text(
-                              mercado.nome,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              mercado.endereco.isEmpty
-                                  ? 'Sem endereço informado'
-                                  : mercado.endereco,
-                            ),
-                            onTap: () async {
-                              final prefs =
-                                  await SharedPreferences.getInstance();
+                    return ListTile(
+                      leading: Icon(
+                        selecionado ? Icons.check_circle : Icons.store,
+                        color: selecionado ? Colors.green : Colors.grey,
+                      ),
+                      title: Text(
+                        mercado.nome,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        mercado.endereco.isEmpty
+                            ? 'Sem endereço informado'
+                            : mercado.endereco,
+                      ),
+                      onTap: () async {
+                        final prefs =
+                        await SharedPreferences.getInstance();
 
-                              await prefs.setString(
-                                'mercado_atual',
-                                jsonEncode(mercado.toMap()),
-                              );
+                        await prefs.setString(
+                          'mercado_atual',
+                          jsonEncode(mercado.toMap()),
+                        );
+
+                        setState(() {
+                          _mercadoAtual = mercado;
+                        });
+
+                        Navigator.of(context).pop();
+
+                        _mostrarMensagem(
+                          'Mercado ativo: ${mercado.nome}',
+                        );
+                      },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit,
+                              color: Colors.blue,
+                            ),
+                            tooltip: 'Editar mercado',
+                            onPressed: () {
+                              Navigator.of(context).pop();
 
                               setState(() {
                                 _mercadoAtual = mercado;
                               });
 
-                              Navigator.of(context).pop();
+                              _abrirCadastroMercado();
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                            ),
+                            tooltip: 'Excluir mercado',
+                            onPressed: () async {
+                              final confirmar = await showDialog<bool>(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: const Text('Excluir mercado'),
+                                    content: Text(
+                                      'Deseja excluir "${mercado.nome}"?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(
+                                              context,
+                                            ).pop(false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                        ),
+                                        onPressed: () =>
+                                            Navigator.of(
+                                              context,
+                                            ).pop(true),
+                                        child: const Text('Excluir'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+
+                              if (confirmar != true) return;
+
+                              setState(() {
+                                _mercados.removeAt(index);
+
+                                if (_mercadoAtual?.nome == mercado.nome) {
+                                  _mercadoAtual = _mercados.isNotEmpty
+                                      ? _mercados.first
+                                      : null;
+                                }
+                              });
+
+                              final prefs =
+                              await SharedPreferences.getInstance();
+
+                              await prefs.setStringList(
+                                'mercados',
+                                _mercados
+                                    .map(
+                                      (item) => jsonEncode(item.toMap()),
+                                )
+                                    .toList(),
+                              );
+
+                              if (_mercadoAtual != null) {
+                                await prefs.setString(
+                                  'mercado_atual',
+                                  jsonEncode(_mercadoAtual!.toMap()),
+                                );
+                              } else {
+                                await prefs.remove('mercado_atual');
+                              }
+
+                              setStateDialog(() {});
 
                               _mostrarMensagem(
-                                'Mercado ativo: ${mercado.nome}',
+                                'Mercado excluído.',
+                                corFundo: Colors.red,
                               );
                             },
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.blue,
-                                  ),
-                                  tooltip: 'Editar mercado',
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-
-                                    setState(() {
-                                      _mercadoAtual = mercado;
-                                    });
-
-                                    _abrirCadastroMercado();
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                  tooltip: 'Excluir mercado',
-                                  onPressed: () async {
-                                    final confirmar = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) {
-                                        return AlertDialog(
-                                          title: const Text('Excluir mercado'),
-                                          content: Text(
-                                            'Deseja excluir "${mercado.nome}"?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(false),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.red,
-                                              ),
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(true),
-                                              child: const Text('Excluir'),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-
-                                    if (confirmar != true) return;
-
-                                    setState(() {
-                                      _mercados.removeAt(index);
-
-                                      if (_mercadoAtual?.nome == mercado.nome) {
-                                        _mercadoAtual = _mercados.isNotEmpty
-                                            ? _mercados.first
-                                            : null;
-                                      }
-                                    });
-
-                                    final prefs =
-                                        await SharedPreferences.getInstance();
-
-                                    await prefs.setStringList(
-                                      'mercados',
-                                      _mercados
-                                          .map(
-                                            (item) => jsonEncode(item.toMap()),
-                                          )
-                                          .toList(),
-                                    );
-
-                                    if (_mercadoAtual != null) {
-                                      await prefs.setString(
-                                        'mercado_atual',
-                                        jsonEncode(_mercadoAtual!.toMap()),
-                                      );
-                                    } else {
-                                      await prefs.remove('mercado_atual');
-                                    }
-
-                                    setStateDialog(() {});
-
-                                    _mostrarMensagem(
-                                      'Mercado excluído.',
-                                      corFundo: Colors.red,
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
+                    );
+                  },
+                ),
               ),
               actions: [
                 TextButton(
@@ -1668,7 +1697,7 @@ class _HomePageState extends State<HomePage> {
                   items: _mercados.map((mercado) {
                     return DropdownMenuItem<String>(
                       value:
-                          _mercadoAtual?.nome ??
+                      _mercadoAtual?.nome ??
                           (_mercados.isNotEmpty ? _mercados.first.nome : null),
                       child: Text(
                         mercado.nome,
@@ -1680,7 +1709,7 @@ class _HomePageState extends State<HomePage> {
                     if (nomeSelecionado == null) return;
 
                     final mercadoSelecionado = _mercados.firstWhere(
-                      (mercado) => mercado.nome == nomeSelecionado,
+                          (mercado) => mercado.nome == nomeSelecionado,
                     );
 
                     setState(() {
@@ -1726,7 +1755,9 @@ class _HomePageState extends State<HomePage> {
       corFundo = Colors.orange.shade50;
       icone = Icons.error_outline;
       titulo =
-          '$creditos crédito${creditos == 1 ? '' : 's'} disponível${creditos == 1 ? '' : 'is'}';
+      '$creditos crédito${creditos == 1 ? '' : 's'} disponível${creditos == 1
+          ? ''
+          : 'is'}';
       subtitulo = 'Seus créditos de lançamento estão acabando.';
     } else {
       corPrincipal = Colors.green;
@@ -1957,6 +1988,32 @@ class _HomePageState extends State<HomePage> {
   Widget _buildCardProduto(Produto produto, int indiceReal, int ordemAnimacao) {
     final maisBarato = _ehMaisBaratoDoGrupo(produto);
 
+    final agora = DateTime.now();
+
+    final ofertaExpirada =
+        produto.ehOferta &&
+            !produto.enquantoDurar &&
+            produto.validade != null &&
+            produto.validade!.isBefore(
+              DateTime(agora.year, agora.month, agora.day),
+            );
+
+    final textoStatus = produto.ehRelampago
+        ? 'RELÂMPAGO'
+        : ofertaExpirada
+        ? 'EXPIRADA'
+        : produto.enquantoDurar
+        ? 'ESTOQUE'
+        : 'ATIVA';
+
+    final corStatus = produto.ehRelampago
+        ? Colors.orange
+        : ofertaExpirada
+        ? Colors.red
+        : produto.enquantoDurar
+        ? Colors.blueGrey
+        : Colors.green;
+
     return TweenAnimationBuilder<double>(
       key: ValueKey(
         '${produto.nome}-${produto.preco}-${produto.mercado}-$indiceReal',
@@ -2057,6 +2114,51 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: corStatus.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: corStatus.withOpacity(0.35)),
+                              ),
+                              child: Text(
+                                textoStatus,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: corStatus,
+                                ),
+                              ),
+                            ),
+                            if (maisBarato)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: Colors.green.withOpacity(0.35)),
+                                ),
+                                child: const Text(
+                                  'MENOR PREÇO',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
                         Text(
                           produto.nome,
                           style: TextStyle(
@@ -2100,7 +2202,11 @@ class _HomePageState extends State<HomePage> {
                             produto.enquantoDurar
                                 ? 'Enquanto durar o estoque'
                                 : produto.validade != null
-                                ? 'Válido até ${produto.validade!.day.toString().padLeft(2, '0')}/${produto.validade!.month.toString().padLeft(2, '0')}'
+                                ? 'Válido até ${produto.validade!
+                                .day
+                                .toString()
+                                .padLeft(2, '0')}/${produto.validade!.month
+                                .toString().padLeft(2, '0')}'
                                 : '',
                             style: const TextStyle(
                               fontSize: 11,
@@ -2127,7 +2233,7 @@ class _HomePageState extends State<HomePage> {
 
       final bateBusca =
           produto.nome.toLowerCase().contains(textoBusca) ||
-          produto.mercado.toLowerCase().contains(textoBusca);
+              produto.mercado.toLowerCase().contains(textoBusca);
 
       final bateCategoria =
           _categoriaFiltro == 'Todos' || produto.categoria == _categoriaFiltro;
@@ -2155,10 +2261,12 @@ class _HomePageState extends State<HomePage> {
         .toList();
 
     final totalItens = _produtos.length;
-    final itensPendentes = _produtos.where((p) => !p.comprado).length;
+    final itensPendentes = _produtos
+        .where((p) => !p.comprado)
+        .length;
     final valorTotal = _produtos.fold<double>(
       0,
-      (total, produto) => total + produto.preco,
+          (total, produto) => total + produto.preco,
     );
 
     int contadorAnimacao = 0;
@@ -2219,6 +2327,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Column(
               children: [
+
                 /// ===== ETAPA 1 =====
                 if (_mostrarFormularioCadastro && _etapaCadastro == 1) ...[
                   Row(
@@ -2278,7 +2387,7 @@ class _HomePageState extends State<HomePage> {
                       ElevatedButton.icon(
                         onPressed: () async {
                           final caminhoImagem =
-                              await escolherImagemDoDispositivo();
+                          await escolherImagemDoDispositivo();
 
                           if (caminhoImagem != null) {
                             setState(() {
@@ -2483,9 +2592,9 @@ class _HomePageState extends State<HomePage> {
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _busca.isNotEmpty
                         ? IconButton(
-                            onPressed: _limparBusca,
-                            icon: const Icon(Icons.clear),
-                          )
+                      onPressed: _limparBusca,
+                      icon: const Icon(Icons.clear),
+                    )
                         : null,
                     filled: true,
                     fillColor: Colors.white,
@@ -2503,37 +2612,37 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: produtosFiltrados.isEmpty
                   ? Center(
-                      child: Text(
-                        _produtos.isEmpty
-                            ? 'Nenhum produto ainda'
-                            : 'Nenhum produto encontrado',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
+                child: Text(
+                  _produtos.isEmpty
+                      ? 'Nenhum produto ainda'
+                      : 'Nenhum produto encontrado',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              )
                   : ListView(
-                      padding: const EdgeInsets.all(12),
-                      children: [
-                        if (_produtos.isNotEmpty) ...[
-                          _buildCardCreditosMercado(),
-                          const SizedBox(height: 12),
+                padding: const EdgeInsets.all(12),
+                children: [
+                  if (_produtos.isNotEmpty) ...[
+                    _buildCardCreditosMercado(),
+                    const SizedBox(height: 12),
 
-                          _buildCabecalhoSecao('Ofertas publicadas'),
-                          ..._produtos.map((produto) {
-                            final indiceReal = _produtos.indexOf(produto);
-                            final widget = _buildCardProduto(
-                              produto,
-                              indiceReal,
-                              contadorAnimacao,
-                            );
-                            contadorAnimacao++;
-                            return widget;
-                          }),
-                        ],
-                      ],
-                    ),
+                    _buildCabecalhoSecao('Ofertas publicadas'),
+                    ..._produtos.map((produto) {
+                      final indiceReal = _produtos.indexOf(produto);
+                      final widget = _buildCardProduto(
+                        produto,
+                        indiceReal,
+                        contadorAnimacao,
+                      );
+                      contadorAnimacao++;
+                      return widget;
+                    }),
+                  ],
+                ],
+              ),
             ),
           ],
         ),
