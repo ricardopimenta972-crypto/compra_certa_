@@ -11,6 +11,7 @@ import 'legal/termo_uso_cliente_page.dart';
 import 'legal/termos_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_navigation.dart';
+import 'servicos/notificacao_service.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -225,6 +226,19 @@ class _OfertasPageState extends State<OfertasPage> {
                           });
 
                           await _salvarPreferenciasLocalizacao();
+
+                          final coordenadas = _coordenadasCidade(
+                            _cidadeSelecionada,
+                          );
+
+                          if (coordenadas != null) {
+                            await NotificacaoService.atualizarLocalizacaoConsumidor(
+                              cidade: _cidadeSelecionada,
+                              latitude: coordenadas['lat']!,
+                              longitude: coordenadas['lng']!,
+                              raioKm: _raioSelecionado,
+                            );
+                          }
 
                           if (context.mounted) {
                             Navigator.pop(context);
