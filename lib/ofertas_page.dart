@@ -450,9 +450,18 @@ class _OfertasPageState extends State<OfertasPage> {
     final ofertasFiltradas = _ofertas.where((produto) {
       final texto = _busca.toLowerCase();
 
-      return produto.nome.toLowerCase().contains(texto) ||
+      final passaNaBusca =
+          produto.nome.toLowerCase().contains(texto) ||
           produto.mercado.toLowerCase().contains(texto) ||
           produto.categoria.toLowerCase().contains(texto);
+
+      if (!passaNaBusca) return false;
+
+      final distanciaKm = _distanciaDoProdutoKm(produto);
+
+      if (distanciaKm == null) return false;
+
+      return distanciaKm <= _raioSelecionado;
     }).toList();
 
     ofertasFiltradas.sort((a, b) {
@@ -473,7 +482,7 @@ class _OfertasPageState extends State<OfertasPage> {
       body: RefreshIndicator(
         onRefresh: _carregarOfertas,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 48),
+          padding: const EdgeInsets.only(bottom: 24),
           children: [
             _buildTopo(),
             Padding(
