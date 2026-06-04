@@ -45,6 +45,7 @@ dependencies:
   cloud_firestore: ^6.4.1
   firebase_messaging: ^16.0.2
   firebase_storage: ^13.4.2
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

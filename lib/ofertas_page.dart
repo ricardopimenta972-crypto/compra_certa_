@@ -12,6 +12,7 @@ import 'legal/termos_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_navigation.dart';
 import 'servicos/notificacao_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class OfertasPage extends StatefulWidget {
   const OfertasPage({super.key});
@@ -51,8 +52,12 @@ class _OfertasPageState extends State<OfertasPage> {
   List<Produto> _ofertas = [];
   String _busca = '';
 
-  String _cidadeSelecionada = 'Goianésia';
+  String _cidadeSelecionada = 'Próximo de você';
   double _raioSelecionado = 5;
+
+  double? _latitudeConsumidor;
+  double? _longitudeConsumidor;
+  bool _carregandoLocalizacao = false;
 
   final List<String> _cidadesDisponiveis = [
     'Goianésia',
@@ -129,20 +134,72 @@ class _OfertasPageState extends State<OfertasPage> {
     final prefs = await SharedPreferences.getInstance();
 
     setState(() {
-      _cidadeSelecionada = prefs.getString('cidadeSelecionada') ?? 'Goianésia';
+      _cidadeSelecionada = 'Próximo de você';
       _raioSelecionado = prefs.getDouble('raioSelecionado') ?? 5;
     });
+
+    await _obterLocalizacaoAtual();
+    await _carregarOfertas();
   }
 
   Future<void> _salvarPreferenciasLocalizacao() async {
     final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString('cidadeSelecionada', _cidadeSelecionada);
     await prefs.setDouble('raioSelecionado', _raioSelecionado);
   }
 
+  Future<void> _obterLocalizacaoAtual() async {
+    try {
+      setState(() {
+        _carregandoLocalizacao = true;
+      });
+
+      bool servicoAtivo = await Geolocator.isLocationServiceEnabled();
+
+      if (!servicoAtivo) {
+        debugPrint('Serviço de localização desativado.');
+        return;
+      }
+
+      LocationPermission permissao = await Geolocator.checkPermission();
+
+      if (permissao == LocationPermission.denied) {
+        permissao = await Geolocator.requestPermission();
+      }
+
+      if (permissao == LocationPermission.denied ||
+          permissao == LocationPermission.deniedForever) {
+        debugPrint('Permissão de localização negada.');
+        return;
+      }
+
+      final posicao = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _latitudeConsumidor = posicao.latitude;
+        _longitudeConsumidor = posicao.longitude;
+        _cidadeSelecionada = 'Próximo de você';
+      });
+
+      await NotificacaoService.atualizarLocalizacaoConsumidor(
+        cidade: 'Localização atual',
+        latitude: posicao.latitude,
+        longitude: posicao.longitude,
+        raioKm: _raioSelecionado,
+      );
+    } catch (e) {
+      debugPrint('Erro ao obter localização atual: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _carregandoLocalizacao = false;
+        });
+      }
+    }
+  }
+
   void _abrirSeletorLocalizacao() {
-    String cidadeTemporaria = _cidadeSelecionada;
     double raioTemporario = _raioSelecionado;
 
     showModalBottomSheet(
@@ -161,37 +218,21 @@ class _OfertasPageState extends State<OfertasPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Selecionar local das ofertas',
+                      'Raio das ofertas',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
-                    DropdownButtonFormField<String>(
-                      value: cidadeTemporaria,
-                      decoration: const InputDecoration(
-                        labelText: 'Cidade',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _cidadesDisponiveis.map((cidade) {
-                        return DropdownMenuItem(
-                          value: cidade,
-                          child: Text(cidade),
-                        );
-                      }).toList(),
-                      onChanged: (valor) {
-                        if (valor == null) return;
-
-                        setModalState(() {
-                          cidadeTemporaria = valor;
-                        });
-                      },
+                    const Text(
+                      'O Compra Certa usa sua localização atual para mostrar ofertas próximas.',
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     DropdownButtonFormField<double>(
                       value: raioTemporario,
@@ -220,31 +261,17 @@ class _OfertasPageState extends State<OfertasPage> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
+                          Navigator.pop(context);
+
                           setState(() {
-                            _cidadeSelecionada = cidadeTemporaria;
                             _raioSelecionado = raioTemporario;
                           });
 
                           await _salvarPreferenciasLocalizacao();
-
-                          final coordenadas = _coordenadasCidade(
-                            _cidadeSelecionada,
-                          );
-
-                          if (coordenadas != null) {
-                            await NotificacaoService.atualizarLocalizacaoConsumidor(
-                              cidade: _cidadeSelecionada,
-                              latitude: coordenadas['lat']!,
-                              longitude: coordenadas['lng']!,
-                              raioKm: _raioSelecionado,
-                            );
-                          }
-
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
+                          await _obterLocalizacaoAtual();
+                          await _carregarOfertas();
                         },
-                        child: const Text('Aplicar filtros'),
+                        child: const Text('Aplicar raio'),
                       ),
                     ),
                   ],
@@ -261,21 +288,6 @@ class _OfertasPageState extends State<OfertasPage> {
   void dispose() {
     _buscaController.dispose();
     super.dispose();
-  }
-
-  Map<String, double>? _coordenadasCidade(String cidade) {
-    switch (cidade) {
-      case 'Goianésia':
-        return {'lat': -15.3175, 'lng': -49.1175};
-      case 'Goiânia':
-        return {'lat': -16.6869, 'lng': -49.2648};
-      case 'Anápolis':
-        return {'lat': -16.3281, 'lng': -48.9530};
-      case 'Brasília':
-        return {'lat': -15.7939, 'lng': -47.8828};
-      default:
-        return null;
-    }
   }
 
   double _grausParaRadianos(double graus) {
@@ -310,15 +322,13 @@ class _OfertasPageState extends State<OfertasPage> {
       return null;
     }
 
-    final coordenadas = _coordenadasCidade(_cidadeSelecionada);
-
-    if (coordenadas == null) {
+    if (_latitudeConsumidor == null || _longitudeConsumidor == null) {
       return null;
     }
 
     return _calcularDistanciaKm(
-      latOrigem: coordenadas['lat']!,
-      lngOrigem: coordenadas['lng']!,
+      latOrigem: _latitudeConsumidor!,
+      lngOrigem: _longitudeConsumidor!,
       latDestino: produto.latitude!,
       lngDestino: produto.longitude!,
     );
