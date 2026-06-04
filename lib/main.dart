@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'legal/termo_uso_cliente_page.dart';
 import 'servicos/notificacao_service.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -200,7 +201,23 @@ class _HomePageState extends State<HomePage> {
       },
     );
 
-    return imagem?.path;
+    if (imagem == null) {
+      return null;
+    }
+
+    final arquivo = File(imagem.path);
+    final nomeArquivo = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final referencia = FirebaseStorage.instance
+        .ref()
+        .child('imagens_ofertas')
+        .child(nomeArquivo);
+
+    await referencia.putFile(arquivo);
+
+    final urlImagem = await referencia.getDownloadURL();
+
+    return urlImagem;
   }
 
   @override
@@ -594,7 +611,7 @@ class _HomePageState extends State<HomePage> {
     final nome = _controller.text.trim();
     final precoTexto = _precoController.text.trim();
     final mercadoTexto = _mercadoController.text.trim();
-    final imagemTexto = _imagemController.text.trim();
+    String imagemTexto = _imagemController.text.trim();
     const quantidadeMedidaTexto = '1';
 
     DateTime? validade;
@@ -668,6 +685,20 @@ class _HomePageState extends State<HomePage> {
         corFundo: Colors.red,
       );
       return;
+    }
+
+    if (imagemTexto.isNotEmpty && !imagemTexto.startsWith('http')) {
+      final arquivo = File(imagemTexto);
+      final nomeArquivo =
+          '${FirebaseAuth.instance.currentUser?.uid ?? 'sem_uid'}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final referencia = FirebaseStorage.instance
+          .ref()
+          .child('imagens_ofertas')
+          .child(nomeArquivo);
+
+      await referencia.putFile(arquivo);
+      imagemTexto = await referencia.getDownloadURL();
     }
 
     final creditoConsumido = await _consumirCreditoPublicacao(
@@ -1573,7 +1604,7 @@ class _HomePageState extends State<HomePage> {
             ),
 
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final nome = _nomeMercadoController.text.trim();
                 final responsavel = _responsavelMercadoController.text.trim();
                 final telefone = _telefoneMercadoController.text.trim();
@@ -1586,7 +1617,25 @@ class _HomePageState extends State<HomePage> {
                 final categoria = _categoriaMercadoController.text.trim();
                 final horarioFuncionamento = _horarioMercadoController.text
                     .trim();
-                final logo = _logoMercadoController.text.trim();
+                String logo = _mercadoAtual?.logoUrl ?? '';
+
+                final caminhoLogoSelecionada = _logoMercadoController.text
+                    .trim();
+
+                if (caminhoLogoSelecionada.isNotEmpty &&
+                    !caminhoLogoSelecionada.startsWith('http')) {
+                  final arquivoLogo = File(caminhoLogoSelecionada);
+
+                  final referenciaLogo = FirebaseStorage.instance.ref().child(
+                    'logos_mercados/${DateTime.now().millisecondsSinceEpoch}.jpg',
+                  );
+
+                  await referenciaLogo.putFile(arquivoLogo);
+
+                  logo = await referenciaLogo.getDownloadURL();
+                } else if (caminhoLogoSelecionada.startsWith('http')) {
+                  logo = caminhoLogoSelecionada;
+                }
 
                 final creditos =
                     int.tryParse(_creditosMercadoController.text.trim()) ?? 100;
@@ -2357,35 +2406,64 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () async {
-                          final caminhoImagem =
-                              await escolherImagemDoDispositivo();
+                          try {
+                            final caminhoImagem =
+                                await escolherImagemDoDispositivo();
 
-                          if (caminhoImagem != null) {
-                            setState(() {
-                              _imagemController.text = caminhoImagem;
-                            });
+                            if (caminhoImagem != null &&
+                                caminhoImagem.isNotEmpty) {
+                              setState(() {
+                                _imagemController.text = caminhoImagem;
+                              });
+
+                              _mostrarMensagem(
+                                'Imagem carregada com sucesso.',
+                                corFundo: Colors.green,
+                              );
+                            } else {
+                              _mostrarMensagem(
+                                'Nenhuma imagem foi selecionada.',
+                                corFundo: Colors.orange,
+                              );
+                            }
+                          } catch (e) {
+                            debugPrint('Erro ao carregar imagem da oferta: $e');
+
+                            _mostrarMensagem(
+                              'Erro ao enviar imagem. Verifique o Firebase Storage.',
+                              corFundo: Colors.red,
+                            );
                           }
                         },
-
                         icon: const Icon(Icons.add_photo_alternate),
-
                         label: const Text('Selecionar imagem da oferta'),
                       ),
 
                       if (_imagemController.text.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
-
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-
-                            child: Image.file(
-                              File(_imagemController.text),
-
-                              height: 126,
-                              width: 126,
-                              fit: BoxFit.cover,
-                            ),
+                            child: _imagemController.text.startsWith('http')
+                                ? Image.network(
+                                    _imagemController.text,
+                                    height: 126,
+                                    width: 126,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.broken_image,
+                                        size: 60,
+                                        color: Colors.green,
+                                      );
+                                    },
+                                  )
+                                : Image.file(
+                                    File(_imagemController.text),
+                                    height: 126,
+                                    width: 126,
+                                    fit: BoxFit.cover,
+                                  ),
                           ),
                         ),
                     ],

@@ -5,6 +5,8 @@ import '../app_navigation.dart';
 import '../selecionar_localizacao_page.dart';
 import 'package:image_picker/image_picker.dart';
 import '../legal/termo_responsabilidade_pdv_page.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class CadastroMercadoPage extends StatefulWidget {
   const CadastroMercadoPage({super.key});
@@ -104,6 +106,22 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
       return;
     }
 
+    String logoUrlFinal = logoController.text.trim();
+
+    if (logoUrlFinal.isNotEmpty && !logoUrlFinal.startsWith('http')) {
+      final arquivo = File(logoUrlFinal);
+      final nomeArquivo =
+          '${usuario.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final referencia = FirebaseStorage.instance
+          .ref()
+          .child('logos_mercados')
+          .child(nomeArquivo);
+
+      await referencia.putFile(arquivo);
+      logoUrlFinal = await referencia.getDownloadURL();
+    }
+
     setState(() => carregando = true);
 
     try {
@@ -125,7 +143,7 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
         'estado': estadoSelecionado,
         'categoriaNegocio': categoriaSelecionada,
         'horarioFuncionamento': horarioController.text.trim(),
-        'logoUrl': logoController.text.trim(),
+        'logoUrl': logoUrlFinal,
         'latitude': double.tryParse(
           latitudeController.text.trim().replaceAll(',', '.'),
         ),
@@ -190,7 +208,19 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
       return null;
     }
 
-    return imagem.path;
+    final arquivo = File(imagem.path);
+    final nomeArquivo = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final referencia = FirebaseStorage.instance
+        .ref()
+        .child('logos_mercados')
+        .child(nomeArquivo);
+
+    await referencia.putFile(arquivo);
+
+    final urlImagem = await referencia.getDownloadURL();
+
+    return urlImagem;
   }
 
   Widget campoTexto({
