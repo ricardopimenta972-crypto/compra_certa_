@@ -526,6 +526,8 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
                       ),
               ),
             ),
+
+            const SizedBox(height: 50),
           ],
         ),
       ),

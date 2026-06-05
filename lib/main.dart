@@ -118,9 +118,8 @@ class _HomePageState extends State<HomePage> {
     'Limpeza',
     'Congelados',
     'Laticínios',
-    'Churrasco',
-    'Final de Semana',
-    'Festa',
+    'Pet Shop',
+    'Utilidades',
   ];
 
   final List<String> _unidadesMedida = [
@@ -1521,24 +1520,6 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 10),
 
-                TextField(
-                  controller: _horarioMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Horário de funcionamento',
-                    hintText: 'Ex: Segunda a sábado, 7h às 20h',
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _creditosMercadoController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Créditos disponíveis',
-                  ),
-                ),
-                const SizedBox(height: 16),
-
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1637,8 +1618,8 @@ class _HomePageState extends State<HomePage> {
                   logo = caminhoLogoSelecionada;
                 }
 
-                final creditos =
-                    int.tryParse(_creditosMercadoController.text.trim()) ?? 100;
+                final int creditos =
+                    _mercadoAtual?.creditosDisponiveis ?? _creditosDisponiveis;
 
                 final latitude = double.tryParse(
                   _latitudeMercadoController.text.trim().replaceAll(',', '.'),
@@ -2490,8 +2471,15 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Checkbox(
                           value: _ehRelampago,
-                          onChanged: (v) =>
-                              setState(() => _ehRelampago = v ?? false),
+                          onChanged: (v) {
+                            setState(() {
+                              _ehRelampago = v ?? false;
+
+                              if (_ehRelampago) {
+                                _enquantoDurar = false;
+                              }
+                            });
+                          },
                         ),
                         const Text(
                           '⚡ Oferta relâmpago',
@@ -2550,8 +2538,15 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Checkbox(
                           value: _enquantoDurar,
-                          onChanged: (v) =>
-                              setState(() => _enquantoDurar = v ?? false),
+                          onChanged: (v) {
+                            setState(() {
+                              _enquantoDurar = v ?? false;
+
+                              if (_enquantoDurar) {
+                                _ehRelampago = false;
+                              }
+                            });
+                          },
                         ),
                         const Text(
                           'Enquanto durar o estoque',
