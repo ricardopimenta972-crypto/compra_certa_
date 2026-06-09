@@ -465,6 +465,7 @@ class _HomePageState extends State<HomePage> {
 
         batch.set(docRef, {
           ...produto.toMap(),
+          'horarioFuncionamento': produto.horarioFuncionamento,
           'mercadoUid': produto.mercadoUid.isNotEmpty
               ? produto.mercadoUid
               : usuario.uid,
@@ -714,6 +715,8 @@ class _HomePageState extends State<HomePage> {
           comprado: false,
           categoria: _categoriaSelecionada,
           mercado: _mercadoAtual?.nome ?? 'Sem mercado',
+          horarioFuncionamento:
+          _mercadoAtual?.horarioFuncionamento ?? '',
           mercadoUid: FirebaseAuth.instance.currentUser?.uid ?? '',
           endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
           latitude: _mercadoAtual?.latitude,

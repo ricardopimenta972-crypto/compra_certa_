@@ -15,6 +15,7 @@ class Produto {
   DateTime? validade;
   String imagemUrl;
   String logoMercadoUrl;
+  String horarioFuncionamento;
   DateTime? inicioProgramado;
   DateTime? fimProgramado;
   bool ehRelampago;
@@ -38,13 +39,14 @@ class Produto {
     this.validade,
     this.imagemUrl = '',
     this.logoMercadoUrl = '',
+    this.horarioFuncionamento = '',
     this.inicioProgramado,
     this.fimProgramado,
     this.ehRelampago = false,
     this.latitude,
     this.longitude,
-  }) : produtoId = produtoId ??
-      DateTime.now().microsecondsSinceEpoch.toString();
+  }) : produtoId =
+           produtoId ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   Map<String, dynamic> toMap() {
     return {
@@ -64,6 +66,7 @@ class Produto {
       'validade': validade?.millisecondsSinceEpoch,
       'imagemUrl': imagemUrl,
       'logoMercadoUrl': logoMercadoUrl,
+      'horarioFuncionamento': horarioFuncionamento,
       'inicioProgramado': inicioProgramado?.millisecondsSinceEpoch,
       'fimProgramado': fimProgramado?.millisecondsSinceEpoch,
       'ehRelampago': ehRelampago,
@@ -74,7 +77,8 @@ class Produto {
 
   factory Produto.fromMap(Map<String, dynamic> map) {
     return Produto(
-      produtoId: map['produtoId'] ?? DateTime.now().microsecondsSinceEpoch.toString(),
+      produtoId:
+          map['produtoId'] ?? DateTime.now().microsecondsSinceEpoch.toString(),
       nome: map['nome'] ?? '',
       preco: (map['preco'] ?? 0).toDouble(),
       quantidade: (map['quantidade'] ?? 1).toDouble(),
@@ -92,6 +96,7 @@ class Produto {
           : null,
       imagemUrl: map['imagemUrl'] ?? '',
       logoMercadoUrl: map['logoMercadoUrl'] ?? '',
+      horarioFuncionamento: map['horarioFuncionamento'] ?? '',
       inicioProgramado: map['inicioProgramado'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['inicioProgramado'])
           : null,

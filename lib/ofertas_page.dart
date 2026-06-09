@@ -53,7 +53,7 @@ class _OfertasPageState extends State<OfertasPage> {
   String _busca = '';
 
   String _cidadeSelecionada = 'Próximo de você';
-  double _raioSelecionado = 5;
+  double _raioSelecionado = 50;
 
   double? _latitudeConsumidor;
   double? _longitudeConsumidor;
@@ -66,7 +66,7 @@ class _OfertasPageState extends State<OfertasPage> {
     'Brasília',
   ];
 
-  final List<double> _raiosDisponiveis = [1, 3, 5, 10, 25];
+  final List<double> _raiosDisponiveis = [1, 3, 5, 10, 25, 50, 75, 100];
 
   @override
   void initState() {
@@ -135,7 +135,7 @@ class _OfertasPageState extends State<OfertasPage> {
 
     setState(() {
       _cidadeSelecionada = 'Próximo de você';
-      _raioSelecionado = prefs.getDouble('raioSelecionado') ?? 5;
+      _raioSelecionado = prefs.getDouble('raioSelecionado') ?? 50;
     });
 
     await _obterLocalizacaoAtual();
@@ -379,7 +379,71 @@ class _OfertasPageState extends State<OfertasPage> {
     final hora = produto.validade!.hour.toString().padLeft(2, '0');
     final minuto = produto.validade!.minute.toString().padLeft(2, '0');
 
-    return '⏰ Válido até $dia/$mes às $hora:$minuto';
+    return '⏰ Válido até $dia/$mes às $hora:$minuto\n${_textoHorarioMercado(produto)}';
+  }
+
+  String _textoHorarioMercado(Produto produto) {
+    final horario = produto.horarioFuncionamento.trim();
+
+    if (horario.isEmpty) {
+      return '⚪ Horário não informado';
+    }
+
+    final partes = horario.split(' às ');
+    if (partes.length != 2) {
+      return '⚪ Horário não informado';
+    }
+
+    final agora = DateTime.now();
+
+    final abertura = partes[0].trim();
+    final fechamento = partes[1].trim();
+
+    final fechamentoPartes = fechamento.split(':');
+    if (fechamentoPartes.length != 2) {
+      return '⚪ Horário não informado';
+    }
+
+    final horaFechamento = int.tryParse(fechamentoPartes[0]);
+    final minutoFechamento = int.tryParse(fechamentoPartes[1]);
+
+    if (horaFechamento == null || minutoFechamento == null) {
+      return '⚪ Horário não informado';
+    }
+
+    final fechamentoHoje = DateTime(
+      agora.year,
+      agora.month,
+      agora.day,
+      horaFechamento,
+      minutoFechamento,
+    );
+
+    final aberturaPartes = abertura.split(':');
+    if (aberturaPartes.length != 2) {
+      return '⚪ Horário não informado';
+    }
+
+    final horaAbertura = int.tryParse(aberturaPartes[0]);
+    final minutoAbertura = int.tryParse(aberturaPartes[1]);
+
+    if (horaAbertura == null || minutoAbertura == null) {
+      return '⚪ Horário não informado';
+    }
+
+    final aberturaHoje = DateTime(
+      agora.year,
+      agora.month,
+      agora.day,
+      horaAbertura,
+      minutoAbertura,
+    );
+
+    if (agora.isAfter(aberturaHoje) && agora.isBefore(fechamentoHoje)) {
+      return '🟢 Aberto até $fechamento';
+    }
+
+    return '🔴 Fechado';
   }
 
   String _normalizarNome(String nome) {
@@ -408,7 +472,6 @@ class _OfertasPageState extends State<OfertasPage> {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('produtos')
-          .orderBy('atualizadoEm', descending: true)
           .get();
 
       final agora = DateTime.now();
@@ -1119,7 +1182,9 @@ class _OfertasPageState extends State<OfertasPage> {
                         )
                       : const Icon(Icons.store, color: Colors.green, size: 22),
                 ),
+
                 const SizedBox(width: 10),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1134,69 +1199,71 @@ class _OfertasPageState extends State<OfertasPage> {
                           fontSize: 16,
                         ),
                       ),
+
                       const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 4,
+
+                      Row(
                         children: [
                           if (produto.endereco.isNotEmpty)
-                            GestureDetector(
+                            InkWell(
+                              borderRadius: BorderRadius.circular(20),
                               onTap: () => _abrirMapa(produto),
-                              child: const Text(
-                                'Como chegar',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.blue.shade300,
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.navigation,
+                                      size: 14,
+                                      color: Colors.blue,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Como chegar',
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          if (distancia != null)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.location_on,
-                                  size: 14,
-                                  color: Colors.blue,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  _formatarDistancia(distancia),
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+
+                          if (distancia != null) ...[
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.blue.shade700,
                             ),
+                            const SizedBox(width: 2),
+                            Text(
+                              _formatarDistancia(distancia),
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
-
-                if (menorPreco)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Text(
-                      'Menor preço',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
               ],
             ),
 
@@ -1320,24 +1387,20 @@ class _OfertasPageState extends State<OfertasPage> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            menorPreco ? Icons.check_circle : Icons.access_time,
+                          const Icon(
+                            Icons.access_time,
                             size: 15,
-                            color: menorPreco ? Colors.green : Colors.grey,
+                            color: Colors.grey,
                           ),
                           const SizedBox(width: 5),
                           Expanded(
                             child: Text(
-                              menorPreco
-                                  ? 'Melhor preço encontrado\n${_formatarValidade(produto)}'
-                                  : _formatarValidade(produto),
+                              _formatarValidade(produto),
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.25,
-                                color: menorPreco ? Colors.green : Colors.grey,
-                                fontWeight: menorPreco
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.normal,
                               ),
                             ),
                           ),

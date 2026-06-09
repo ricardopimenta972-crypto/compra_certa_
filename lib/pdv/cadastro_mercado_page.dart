@@ -66,7 +66,6 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
 
   final List<String> categorias = [
     'Mercado / Supermercado',
-    'Farmácia',
     'Açougue',
     'Hortifruti',
     'Padaria',
@@ -387,10 +386,48 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
               ),
             ),
 
-            campoTexto(
-              controller: horarioController,
-              label: 'Horário de funcionamento',
-              icon: Icons.access_time,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  final abertura = await showTimePicker(
+                    context: context,
+                    initialTime: const TimeOfDay(hour: 7, minute: 0),
+                  );
+
+                  if (abertura == null) return;
+
+                  if (!mounted) return;
+
+                  final fechamento = await showTimePicker(
+                    context: context,
+                    initialTime: const TimeOfDay(hour: 18, minute: 0),
+                  );
+
+                  if (fechamento == null) return;
+
+                  final horario =
+                      '${abertura.hour.toString().padLeft(2, '0')}:${abertura.minute.toString().padLeft(2, '0')} às ${fechamento.hour.toString().padLeft(2, '0')}:${fechamento.minute.toString().padLeft(2, '0')}';
+
+                  setState(() {
+                    horarioController.text = horario;
+                  });
+                },
+                child: IgnorePointer(
+                  child: TextField(
+                    controller: horarioController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.access_time),
+                      labelText: 'Horário de funcionamento',
+                      hintText: 'Toque para selecionar o horário',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             const SizedBox(height: 10),
