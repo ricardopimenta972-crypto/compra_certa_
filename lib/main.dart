@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'legal/termo_uso_cliente_page.dart';
 import 'servicos/notificacao_service.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'atualizacao_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -719,6 +720,7 @@ class _HomePageState extends State<HomePage> {
           _mercadoAtual?.horarioFuncionamento ?? '',
           mercadoUid: FirebaseAuth.instance.currentUser?.uid ?? '',
           endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
+          cidade: _mercadoAtual?.cidade ?? '',
           latitude: _mercadoAtual?.latitude,
           longitude: _mercadoAtual?.longitude,
           ehOferta: _ehOferta,
