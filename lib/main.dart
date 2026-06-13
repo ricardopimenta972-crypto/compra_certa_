@@ -60,6 +60,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool _aceitouResponsabilidadeOferta = false;
+  bool _novaLogoSelecionada = false;
+
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _precoController = TextEditingController();
   final TextEditingController _mercadoController = TextEditingController();
@@ -589,6 +591,27 @@ class _HomePageState extends State<HomePage> {
 
       await mercadoRef.set(dadosMercado, SetOptions(merge: true));
 
+      final ofertasDoMercado = await FirebaseFirestore.instance
+          .collection('produtos')
+          .where('mercadoUid', isEqualTo: usuario.uid)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (final doc in ofertasDoMercado.docs) {
+        batch.update(doc.reference, {
+          'mercado': mercado.nome,
+          'endereco': mercado.endereco,
+          'cidade': mercado.cidade,
+          'latitude': mercado.latitude,
+          'longitude': mercado.longitude,
+          'logoMercadoUrl': mercado.logoUrl,
+          'horarioFuncionamento': mercado.horarioFuncionamento,
+        });
+      }
+
+      await batch.commit();
+
       setState(() {
         _mercados.clear();
         _mercados.add(mercado);
@@ -716,8 +739,7 @@ class _HomePageState extends State<HomePage> {
           comprado: false,
           categoria: _categoriaSelecionada,
           mercado: _mercadoAtual?.nome ?? 'Sem mercado',
-          horarioFuncionamento:
-          _mercadoAtual?.horarioFuncionamento ?? '',
+          horarioFuncionamento: _mercadoAtual?.horarioFuncionamento ?? '',
           mercadoUid: FirebaseAuth.instance.currentUser?.uid ?? '',
           endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
           cidade: _mercadoAtual?.cidade ?? '',
@@ -1444,229 +1466,297 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Editar dados do PDV'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _nomeMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do mercado / PDV',
-                  ),
-                ),
-                const SizedBox(height: 10),
+        bool carregandoLogo = false;
+        bool logoCarregada = false;
 
-                TextField(
-                  controller: _responsavelMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Responsável pelo PDV',
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _telefoneMercadoController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Telefone'),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _whatsappMercadoController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'WhatsApp'),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _categoriaMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoria do PDV',
-                    hintText: 'Ex: Mercado, farmácia, açougue...',
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _enderecoMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Rua / endereço',
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _numeroMercadoController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Número'),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _bairroMercadoController,
-                  decoration: const InputDecoration(labelText: 'Bairro'),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _cidadeMercadoController,
-                  decoration: const InputDecoration(labelText: 'Cidade'),
-                ),
-                const SizedBox(height: 10),
-
-                TextField(
-                  controller: _estadoMercadoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Estado / UF',
-                    hintText: 'Ex: GO',
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Editar dados do PDV'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final imagem = await escolherImagemDoDispositivo();
+                    TextField(
+                      controller: _nomeMercadoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do mercado / PDV',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
 
-                        if (imagem != null) {
-                          setState(() {
-                            _logoMercadoController.text = imagem;
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.photo_camera),
-                      label: const Text('Selecionar logo/fachada'),
+                    TextField(
+                      controller: _responsavelMercadoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Responsável pelo PDV',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _telefoneMercadoController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: 'Telefone'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _whatsappMercadoController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: 'WhatsApp'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _categoriaMercadoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria do PDV',
+                        hintText: 'Ex: Mercado, farmácia, açougue...',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _enderecoMercadoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Rua / endereço',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _numeroMercadoController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Número'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _bairroMercadoController,
+                      decoration: const InputDecoration(labelText: 'Bairro'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _cidadeMercadoController,
+                      decoration: const InputDecoration(labelText: 'Cidade'),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: _estadoMercadoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Estado / UF',
+                        hintText: 'Ex: GO',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: carregandoLogo
+                              ? null
+                              : () async {
+                                  final imagem =
+                                      await escolherImagemDoDispositivo();
+
+                                  if (imagem != null) {
+                                    setDialogState(() {
+                                      carregandoLogo = true;
+                                      logoCarregada = false;
+                                    });
+
+                                    await Future.delayed(
+                                      const Duration(seconds: 5),
+                                    );
+
+                                    setDialogState(() {
+                                      _logoMercadoController.text = imagem;
+                                      _novaLogoSelecionada = true;
+                                      carregandoLogo = false;
+                                      logoCarregada = true;
+                                    });
+                                  }
+                                },
+                          icon: const Icon(Icons.photo_camera),
+                          label: const Text('Selecionar logo/fachada'),
+                        ),
+
+                        if (carregandoLogo)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Carregando imagem...',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+
+                        if (logoCarregada)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Imagem carregada. Toque em Salvar alterações.',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
 
-                    if (_logoMercadoController.text.isNotEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Imagem selecionada com sucesso.',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                    const SizedBox(height: 16),
+
+                    ElevatedButton.icon(
+                      onPressed: carregandoLogo
+                          ? null
+                          : () async {
+                              final resultado = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const SelecionarLocalizacaoPage(),
+                                ),
+                              );
+
+                              if (resultado != null) {
+                                _latitudeMercadoController.text = resultado
+                                    .latitude
+                                    .toString();
+
+                                _longitudeMercadoController.text = resultado
+                                    .longitude
+                                    .toString();
+
+                                _mostrarMensagem(
+                                  'Localização selecionada com sucesso.',
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.map),
+                      label: const Text('Selecionar no mapa'),
+                    ),
                   ],
                 ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: carregandoLogo
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
 
-                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: carregandoLogo
+                      ? null
+                      : () async {
+                          final nome = _nomeMercadoController.text.trim();
+                          final responsavel = _responsavelMercadoController.text
+                              .trim();
+                          final telefone = _telefoneMercadoController.text
+                              .trim();
+                          final whatsapp = _whatsappMercadoController.text
+                              .trim();
+                          final endereco = _enderecoMercadoController.text
+                              .trim();
+                          final numero = _numeroMercadoController.text.trim();
+                          final bairro = _bairroMercadoController.text.trim();
+                          final cidade = _cidadeMercadoController.text.trim();
+                          final estado = _estadoMercadoController.text.trim();
+                          final categoria = _categoriaMercadoController.text
+                              .trim();
+                          final horarioFuncionamento = _horarioMercadoController
+                              .text
+                              .trim();
 
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final resultado = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SelecionarLocalizacaoPage(),
-                      ),
-                    );
+                          String logo = _mercadoAtual?.logoUrl ?? '';
 
-                    if (resultado != null) {
-                      _latitudeMercadoController.text = resultado.latitude
-                          .toString();
+                          final caminhoLogoSelecionada = _logoMercadoController
+                              .text
+                              .trim();
 
-                      _longitudeMercadoController.text = resultado.longitude
-                          .toString();
+                          if (caminhoLogoSelecionada.isNotEmpty &&
+                              !caminhoLogoSelecionada.startsWith('http')) {
+                            final arquivoLogo = File(caminhoLogoSelecionada);
 
-                      _mostrarMensagem('Localização selecionada com sucesso.');
-                    }
-                  },
-                  icon: const Icon(Icons.map),
-                  label: const Text('Selecionar no mapa'),
+                            final referenciaLogo = FirebaseStorage.instance
+                                .ref()
+                                .child(
+                                  'logos_mercados/${DateTime.now().millisecondsSinceEpoch}.jpg',
+                                );
+
+                            await referenciaLogo.putFile(arquivoLogo);
+
+                            logo = await referenciaLogo.getDownloadURL();
+                          } else if (caminhoLogoSelecionada.startsWith(
+                            'http',
+                          )) {
+                            logo = caminhoLogoSelecionada;
+                          }
+
+                          final int creditos =
+                              _mercadoAtual?.creditosDisponiveis ??
+                              _creditosDisponiveis;
+
+                          final latitude = double.tryParse(
+                            _latitudeMercadoController.text.trim().replaceAll(
+                              ',',
+                              '.',
+                            ),
+                          );
+
+                          final longitude = double.tryParse(
+                            _longitudeMercadoController.text.trim().replaceAll(
+                              ',',
+                              '.',
+                            ),
+                          );
+
+                          if (nome.isEmpty || endereco.isEmpty) {
+                            _mostrarMensagem(
+                              'Preencha nome e endereço do PDV.',
+                              corFundo: Colors.red,
+                            );
+                            return;
+                          }
+
+                          await _salvarMercado(
+                            Mercado(
+                              nome: nome,
+                              responsavel: responsavel,
+                              endereco: endereco,
+                              numero: numero,
+                              bairro: bairro,
+                              cidade: cidade,
+                              estado: estado,
+                              categoriaNegocio: categoria,
+                              logoUrl: logo,
+                              telefone: telefone,
+                              whatsapp: whatsapp,
+                              horarioFuncionamento: horarioFuncionamento,
+                              creditosDisponiveis: creditos,
+                              latitude: latitude,
+                              longitude: longitude,
+                            ),
+                          );
+
+                          _novaLogoSelecionada = false;
+
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                  child: const Text('Salvar alterações'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-
-            ElevatedButton(
-              onPressed: () async {
-                final nome = _nomeMercadoController.text.trim();
-                final responsavel = _responsavelMercadoController.text.trim();
-                final telefone = _telefoneMercadoController.text.trim();
-                final whatsapp = _whatsappMercadoController.text.trim();
-                final endereco = _enderecoMercadoController.text.trim();
-                final numero = _numeroMercadoController.text.trim();
-                final bairro = _bairroMercadoController.text.trim();
-                final cidade = _cidadeMercadoController.text.trim();
-                final estado = _estadoMercadoController.text.trim();
-                final categoria = _categoriaMercadoController.text.trim();
-                final horarioFuncionamento = _horarioMercadoController.text
-                    .trim();
-                String logo = _mercadoAtual?.logoUrl ?? '';
-
-                final caminhoLogoSelecionada = _logoMercadoController.text
-                    .trim();
-
-                if (caminhoLogoSelecionada.isNotEmpty &&
-                    !caminhoLogoSelecionada.startsWith('http')) {
-                  final arquivoLogo = File(caminhoLogoSelecionada);
-
-                  final referenciaLogo = FirebaseStorage.instance.ref().child(
-                    'logos_mercados/${DateTime.now().millisecondsSinceEpoch}.jpg',
-                  );
-
-                  await referenciaLogo.putFile(arquivoLogo);
-
-                  logo = await referenciaLogo.getDownloadURL();
-                } else if (caminhoLogoSelecionada.startsWith('http')) {
-                  logo = caminhoLogoSelecionada;
-                }
-
-                final int creditos =
-                    _mercadoAtual?.creditosDisponiveis ?? _creditosDisponiveis;
-
-                final latitude = double.tryParse(
-                  _latitudeMercadoController.text.trim().replaceAll(',', '.'),
-                );
-
-                final longitude = double.tryParse(
-                  _longitudeMercadoController.text.trim().replaceAll(',', '.'),
-                );
-
-                if (nome.isEmpty || endereco.isEmpty) {
-                  _mostrarMensagem(
-                    'Preencha nome e endereço do PDV.',
-                    corFundo: Colors.red,
-                  );
-                  return;
-                }
-
-                _salvarMercado(
-                  Mercado(
-                    nome: nome,
-                    responsavel: responsavel,
-                    endereco: endereco,
-                    numero: numero,
-                    bairro: bairro,
-                    cidade: cidade,
-                    estado: estado,
-                    categoriaNegocio: categoria,
-                    logoUrl: logo,
-                    telefone: telefone,
-                    whatsapp: whatsapp,
-                    horarioFuncionamento: horarioFuncionamento,
-                    creditosDisponiveis: creditos,
-                    latitude: latitude,
-                    longitude: longitude,
-                  ),
-                );
-
-                Navigator.of(context).pop();
-              },
-              child: const Text('Salvar alterações'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
