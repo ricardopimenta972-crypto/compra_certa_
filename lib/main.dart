@@ -1209,7 +1209,7 @@ class _HomePageState extends State<HomePage> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final novoNome = nomeController.text.trim();
                 final novoPrecoTexto = precoController.text.trim();
                 final novoMercadoTexto = mercadoController.text.trim();
@@ -1229,6 +1229,35 @@ class _HomePageState extends State<HomePage> {
                 if (novoPreco == null) {
                   _mostrarMensagem('Preço inválido!', corFundo: Colors.red);
                   return;
+                }
+
+                final virouRelampago =
+                    !produtoAtual.ehRelampago && ehRelampagoEditado;
+
+                final renovouRelampago =
+                    produtoAtual.ehRelampago &&
+                        ehRelampagoEditado &&
+                        (
+                            produtoAtual.inicioProgramado != inicioRelampagoEditado ||
+                                produtoAtual.fimProgramado != fimRelampagoEditado
+                        );
+
+                final renovouOfertaNormal =
+                    !produtoAtual.ehRelampago &&
+                        !ehRelampagoEditado &&
+                        produtoAtual.validade != validadeEditada;
+
+                final precisaCobrarCredito =
+                    virouRelampago || renovouRelampago || renovouOfertaNormal;
+
+                if (precisaCobrarCredito) {
+                  final creditoConsumido = await _consumirCreditoPublicacao(
+                    ehRelampago: ehRelampagoEditado,
+                  );
+
+                  if (!creditoConsumido) {
+                    return;
+                  }
                 }
 
                 setState(() {
