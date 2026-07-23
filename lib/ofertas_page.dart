@@ -422,55 +422,108 @@ class _OfertasPageState extends State<OfertasPage> {
     final hora = produto.validade!.hour.toString().padLeft(2, '0');
     final minuto = produto.validade!.minute.toString().padLeft(2, '0');
 
-    return '⏰ Válido até $dia/$mes às $hora:$minuto\n${_textoHorarioMercado(produto)}';
+    return '⏰ Válido até $dia/$mes às $hora:$minuto';
   }
 
   String _textoHorarioMercado(Produto produto) {
-    final horario = produto.horarioFuncionamento.trim();
+    final agora = DateTime.now();
 
-    if (horario.isEmpty) {
+    final nomesDias = {
+      DateTime.monday: 'segunda',
+      DateTime.tuesday: 'terca',
+      DateTime.wednesday: 'quarta',
+      DateTime.thursday: 'quinta',
+      DateTime.friday: 'sexta',
+      DateTime.saturday: 'sabado',
+      DateTime.sunday: 'domingo',
+    };
+
+    final diaAtual = nomesDias[agora.weekday];
+
+    if (diaAtual != null && produto.horariosFuncionamento.isNotEmpty) {
+      final dadosDia = produto.horariosFuncionamento[diaAtual];
+
+      if (dadosDia is Map) {
+        final aberto = dadosDia['aberto'] == true;
+
+        if (!aberto) {
+          return '🔴 Fechado';
+        }
+
+        final abertura = (dadosDia['abertura'] ?? '').toString().trim();
+        final fechamento = (dadosDia['fechamento'] ?? '').toString().trim();
+
+        final aberturaPartes = abertura.split(':');
+        final fechamentoPartes = fechamento.split(':');
+
+        if (aberturaPartes.length == 2 && fechamentoPartes.length == 2) {
+          final horaAbertura = int.tryParse(aberturaPartes[0]);
+          final minutoAbertura = int.tryParse(aberturaPartes[1]);
+          final horaFechamento = int.tryParse(fechamentoPartes[0]);
+          final minutoFechamento = int.tryParse(fechamentoPartes[1]);
+
+          if (horaAbertura != null &&
+              minutoAbertura != null &&
+              horaFechamento != null &&
+              minutoFechamento != null) {
+            final aberturaHoje = DateTime(
+              agora.year,
+              agora.month,
+              agora.day,
+              horaAbertura,
+              minutoAbertura,
+            );
+
+            final fechamentoHoje = DateTime(
+              agora.year,
+              agora.month,
+              agora.day,
+              horaFechamento,
+              minutoFechamento,
+            );
+
+            if (!agora.isBefore(aberturaHoje) &&
+                agora.isBefore(fechamentoHoje)) {
+              return '🟢 Aberto até $fechamento';
+            }
+
+            return '🔴 Fechado';
+          }
+        }
+      }
+    }
+
+    final horarioAntigo = produto.horarioFuncionamento.trim();
+
+    if (horarioAntigo.isEmpty) {
       return '⚪ Horário não informado';
     }
 
-    final partes = horario.split(' às ');
+    final partes = horarioAntigo.split(' às ');
+
     if (partes.length != 2) {
       return '⚪ Horário não informado';
     }
 
-    final agora = DateTime.now();
-
     final abertura = partes[0].trim();
     final fechamento = partes[1].trim();
 
-    final fechamentoPartes = fechamento.split(':');
-    if (fechamentoPartes.length != 2) {
-      return '⚪ Horário não informado';
-    }
-
-    final horaFechamento = int.tryParse(fechamentoPartes[0]);
-    final minutoFechamento = int.tryParse(fechamentoPartes[1]);
-
-    if (horaFechamento == null || minutoFechamento == null) {
-      return '⚪ Horário não informado';
-    }
-
-    final fechamentoHoje = DateTime(
-      agora.year,
-      agora.month,
-      agora.day,
-      horaFechamento,
-      minutoFechamento,
-    );
-
     final aberturaPartes = abertura.split(':');
-    if (aberturaPartes.length != 2) {
+    final fechamentoPartes = fechamento.split(':');
+
+    if (aberturaPartes.length != 2 || fechamentoPartes.length != 2) {
       return '⚪ Horário não informado';
     }
 
     final horaAbertura = int.tryParse(aberturaPartes[0]);
     final minutoAbertura = int.tryParse(aberturaPartes[1]);
+    final horaFechamento = int.tryParse(fechamentoPartes[0]);
+    final minutoFechamento = int.tryParse(fechamentoPartes[1]);
 
-    if (horaAbertura == null || minutoAbertura == null) {
+    if (horaAbertura == null ||
+        minutoAbertura == null ||
+        horaFechamento == null ||
+        minutoFechamento == null) {
       return '⚪ Horário não informado';
     }
 
@@ -482,7 +535,15 @@ class _OfertasPageState extends State<OfertasPage> {
       minutoAbertura,
     );
 
-    if (agora.isAfter(aberturaHoje) && agora.isBefore(fechamentoHoje)) {
+    final fechamentoHoje = DateTime(
+      agora.year,
+      agora.month,
+      agora.day,
+      horaFechamento,
+      minutoFechamento,
+    );
+
+    if (!agora.isBefore(aberturaHoje) && agora.isBefore(fechamentoHoje)) {
       return '🟢 Aberto até $fechamento';
     }
 
@@ -777,15 +838,26 @@ class _OfertasPageState extends State<OfertasPage> {
                 ListTile(
                   leading: const Icon(Icons.support_agent),
                   title: const Text('Contato / suporte'),
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Contato do suporte será adicionado em breve.',
-                        ),
-                      ),
+
+                    final Uri email = Uri(
+                      scheme: 'mailto',
+                      path: 'central.compracerta@gmail.com',
+                      queryParameters: {'subject': 'Suporte Compra Certa'},
                     );
+
+                    final abriu = await launchUrl(email);
+
+                    if (!abriu && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Não foi possível abrir o aplicativo de e-mail.',
+                          ),
+                        ),
+                      );
+                    }
                   },
                 ),
                 ListTile(

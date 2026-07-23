@@ -17,6 +17,7 @@ class Produto {
   String imagemUrl;
   String logoMercadoUrl;
   String horarioFuncionamento;
+  Map<String, dynamic> horariosFuncionamento;
   DateTime? inicioProgramado;
   DateTime? fimProgramado;
   bool ehRelampago;
@@ -42,6 +43,7 @@ class Produto {
     this.imagemUrl = '',
     this.logoMercadoUrl = '',
     this.horarioFuncionamento = '',
+    this.horariosFuncionamento = const {},
     this.inicioProgramado,
     this.fimProgramado,
     this.ehRelampago = false,
@@ -70,6 +72,7 @@ class Produto {
       'imagemUrl': imagemUrl,
       'logoMercadoUrl': logoMercadoUrl,
       'horarioFuncionamento': horarioFuncionamento,
+      'horariosFuncionamento': horariosFuncionamento,
       'inicioProgramado': inicioProgramado?.millisecondsSinceEpoch,
       'fimProgramado': fimProgramado?.millisecondsSinceEpoch,
       'ehRelampago': ehRelampago,
@@ -101,6 +104,9 @@ class Produto {
       imagemUrl: map['imagemUrl'] ?? '',
       logoMercadoUrl: map['logoMercadoUrl'] ?? '',
       horarioFuncionamento: map['horarioFuncionamento'] ?? '',
+      horariosFuncionamento: Map<String, dynamic>.from(
+        map['horariosFuncionamento'] ?? {},
+      ),
       inicioProgramado: map['inicioProgramado'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['inicioProgramado'])
           : null,

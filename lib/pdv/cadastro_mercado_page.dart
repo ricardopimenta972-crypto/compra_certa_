@@ -59,6 +59,15 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
     'TO',
   ];
   final horarioController = TextEditingController();
+  final Map<String, Map<String, dynamic>> horariosFuncionamento = {
+    'segunda': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+    'terca': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+    'quarta': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+    'quinta': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+    'sexta': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+    'sabado': {'aberto': true, 'abertura': '07:00', 'fechamento': '13:00'},
+    'domingo': {'aberto': false, 'abertura': '', 'fechamento': ''},
+  };
 
   String categoriaSelecionada = 'Mercado / Supermercado';
   bool carregando = false;
@@ -142,6 +151,7 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
         'estado': estadoSelecionado,
         'categoriaNegocio': categoriaSelecionada,
         'horarioFuncionamento': horarioController.text.trim(),
+        'horariosFuncionamento': horariosFuncionamento,
         'logoUrl': logoUrlFinal,
         'latitude': double.tryParse(
           latitudeController.text.trim().replaceAll(',', '.'),
@@ -239,6 +249,209 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
+    );
+  }
+
+  TimeOfDay _converterHora(String horario) {
+    final partes = horario.split(':');
+
+    return TimeOfDay(
+      hour: int.tryParse(partes[0]) ?? 7,
+      minute: int.tryParse(partes.length > 1 ? partes[1] : '0') ?? 0,
+    );
+  }
+
+  String _formatarHora(TimeOfDay horario) {
+    final hora = horario.hour.toString().padLeft(2, '0');
+    final minuto = horario.minute.toString().padLeft(2, '0');
+
+    return '$hora:$minuto';
+  }
+
+  String _criarResumoHorarios() {
+    final nomesDias = {
+      'segunda': 'Seg',
+      'terca': 'Ter',
+      'quarta': 'Qua',
+      'quinta': 'Qui',
+      'sexta': 'Sex',
+      'sabado': 'Sáb',
+      'domingo': 'Dom',
+    };
+
+    final partes = <String>[];
+
+    for (final entrada in horariosFuncionamento.entries) {
+      final dia = entrada.key;
+      final dados = entrada.value;
+      final aberto = dados['aberto'] == true;
+
+      if (aberto) {
+        partes.add(
+          '${nomesDias[dia]}: ${dados['abertura']} às ${dados['fechamento']}',
+        );
+      } else {
+        partes.add('${nomesDias[dia]}: fechado');
+      }
+    }
+
+    return partes.join(' • ');
+  }
+
+  Future<void> _abrirDialogHorarios() async {
+    final horariosTemporarios = horariosFuncionamento
+        .map<String, Map<String, dynamic>>(
+          (dia, dados) => MapEntry(dia, Map<String, dynamic>.from(dados)),
+        );
+
+    final nomesDias = {
+      'segunda': 'Segunda-feira',
+      'terca': 'Terça-feira',
+      'quarta': 'Quarta-feira',
+      'quinta': 'Quinta-feira',
+      'sexta': 'Sexta-feira',
+      'sabado': 'Sábado',
+      'domingo': 'Domingo',
+    };
+
+    await showDialog<void>(
+      context: context,
+      builder: (contextDialog) {
+        return StatefulBuilder(
+          builder: (contextDialog, atualizarDialog) {
+            return AlertDialog(
+              title: const Text('Horários de funcionamento'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: horariosTemporarios.entries.map((entrada) {
+                    final dia = entrada.key;
+                    final dados = entrada.value;
+                    final aberto = dados['aberto'] == true;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    nomesDias[dia] ?? dia,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Switch(
+                                  value: aberto,
+                                  onChanged: (valor) {
+                                    atualizarDialog(() {
+                                      dados['aberto'] = valor;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            if (!aberto)
+                              const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Fechado',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            if (aberto)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () async {
+                                        final horarioSelecionado =
+                                            await showTimePicker(
+                                              context: contextDialog,
+                                              initialTime: _converterHora(
+                                                dados['abertura'] ?? '07:00',
+                                              ),
+                                            );
+
+                                        if (horarioSelecionado == null) return;
+
+                                        atualizarDialog(() {
+                                          dados['abertura'] = _formatarHora(
+                                            horarioSelecionado,
+                                          );
+                                        });
+                                      },
+                                      child: Text('Abre: ${dados['abertura']}'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () async {
+                                        final horarioSelecionado =
+                                            await showTimePicker(
+                                              context: contextDialog,
+                                              initialTime: _converterHora(
+                                                dados['fechamento'] ?? '18:00',
+                                              ),
+                                            );
+
+                                        if (horarioSelecionado == null) return;
+
+                                        atualizarDialog(() {
+                                          dados['fechamento'] = _formatarHora(
+                                            horarioSelecionado,
+                                          );
+                                        });
+                                      },
+                                      child: Text(
+                                        'Fecha: ${dados['fechamento']}',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(contextDialog);
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      horariosFuncionamento
+                        ..clear()
+                        ..addAll(horariosTemporarios);
+
+                      horarioController.text = 'Horários configurados';
+                    });
+
+                    Navigator.pop(contextDialog);
+                  },
+                  child: const Text('Salvar horários'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -391,28 +604,7 @@ class _CadastroMercadoPageState extends State<CadastroMercadoPage> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () async {
-                  final abertura = await showTimePicker(
-                    context: context,
-                    initialTime: const TimeOfDay(hour: 7, minute: 0),
-                  );
-
-                  if (abertura == null) return;
-
-                  if (!mounted) return;
-
-                  final fechamento = await showTimePicker(
-                    context: context,
-                    initialTime: const TimeOfDay(hour: 18, minute: 0),
-                  );
-
-                  if (fechamento == null) return;
-
-                  final horario =
-                      '${abertura.hour.toString().padLeft(2, '0')}:${abertura.minute.toString().padLeft(2, '0')} às ${fechamento.hour.toString().padLeft(2, '0')}:${fechamento.minute.toString().padLeft(2, '0')}';
-
-                  setState(() {
-                    horarioController.text = horario;
-                  });
+                  await _abrirDialogHorarios();
                 },
                 child: IgnorePointer(
                   child: TextField(

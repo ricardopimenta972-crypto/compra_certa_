@@ -607,6 +607,7 @@ class _HomePageState extends State<HomePage> {
           'longitude': mercado.longitude,
           'logoMercadoUrl': mercado.logoUrl,
           'horarioFuncionamento': mercado.horarioFuncionamento,
+          'horariosFuncionamento': mercado.horariosFuncionamento,
         });
       }
 
@@ -740,6 +741,8 @@ class _HomePageState extends State<HomePage> {
           categoria: _categoriaSelecionada,
           mercado: _mercadoAtual?.nome ?? 'Sem mercado',
           horarioFuncionamento: _mercadoAtual?.horarioFuncionamento ?? '',
+          horariosFuncionamento:
+              _mercadoAtual?.horariosFuncionamento ?? const {},
           mercadoUid: FirebaseAuth.instance.currentUser?.uid ?? '',
           endereco: _mercadoAtual?.endereco ?? 'Endereço não informado',
           cidade: _mercadoAtual?.cidade ?? '',
@@ -1236,16 +1239,14 @@ class _HomePageState extends State<HomePage> {
 
                 final renovouRelampago =
                     produtoAtual.ehRelampago &&
-                        ehRelampagoEditado &&
-                        (
-                            produtoAtual.inicioProgramado != inicioRelampagoEditado ||
-                                produtoAtual.fimProgramado != fimRelampagoEditado
-                        );
+                    ehRelampagoEditado &&
+                    (produtoAtual.inicioProgramado != inicioRelampagoEditado ||
+                        produtoAtual.fimProgramado != fimRelampagoEditado);
 
                 final renovouOfertaNormal =
                     !produtoAtual.ehRelampago &&
-                        !ehRelampagoEditado &&
-                        produtoAtual.validade != validadeEditada;
+                    !ehRelampagoEditado &&
+                    produtoAtual.validade != validadeEditada;
 
                 final precisaCobrarCredito =
                     virouRelampago || renovouRelampago || renovouOfertaNormal;
@@ -1498,6 +1499,10 @@ class _HomePageState extends State<HomePage> {
         bool carregandoLogo = false;
         bool logoCarregada = false;
 
+        Map<String, dynamic> horariosEditados = Map<String, dynamic>.from(
+          _mercadoAtual?.horariosFuncionamento ?? const {},
+        );
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -1580,6 +1585,24 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 10),
+
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final novosHorarios = await _abrirDialogEditarHorarios(
+                          horariosEditados,
+                        );
+
+                        if (novosHorarios != null) {
+                          setDialogState(() {
+                            horariosEditados = novosHorarios;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.access_time),
+                      label: const Text('Editar horários de funcionamento'),
+                    ),
+
+                    const SizedBox(height: 16),
 
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1769,6 +1792,7 @@ class _HomePageState extends State<HomePage> {
                               telefone: telefone,
                               whatsapp: whatsapp,
                               horarioFuncionamento: horarioFuncionamento,
+                              horariosFuncionamento: horariosEditados,
                               creditosDisponiveis: creditos,
                               latitude: latitude,
                               longitude: longitude,
@@ -2351,6 +2375,209 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<Map<String, dynamic>?> _abrirDialogEditarHorarios(
+    Map<String, dynamic> horariosAtuais,
+  ) async {
+    final Map<String, dynamic> horariosTemporarios = {};
+
+    horariosAtuais.forEach((dia, dados) {
+      if (dados is Map) {
+        horariosTemporarios[dia] = Map<String, dynamic>.from(dados);
+      }
+    });
+
+    final horariosPadrao = <String, Map<String, dynamic>>{
+      'segunda': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+      'terca': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+      'quarta': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+      'quinta': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+      'sexta': {'aberto': true, 'abertura': '07:00', 'fechamento': '18:00'},
+      'sabado': {'aberto': true, 'abertura': '07:00', 'fechamento': '13:00'},
+      'domingo': {'aberto': false, 'abertura': '', 'fechamento': ''},
+    };
+
+    for (final entrada in horariosPadrao.entries) {
+      horariosTemporarios.putIfAbsent(
+        entrada.key,
+        () => Map<String, dynamic>.from(entrada.value),
+      );
+    }
+
+    final nomesDias = <String, String>{
+      'segunda': 'Segunda-feira',
+      'terca': 'Terça-feira',
+      'quarta': 'Quarta-feira',
+      'quinta': 'Quinta-feira',
+      'sexta': 'Sexta-feira',
+      'sabado': 'Sábado',
+      'domingo': 'Domingo',
+    };
+
+    TimeOfDay converterHora(String horario) {
+      final partes = horario.split(':');
+
+      return TimeOfDay(
+        hour: int.tryParse(partes.isNotEmpty ? partes[0] : '') ?? 7,
+        minute: int.tryParse(partes.length > 1 ? partes[1] : '') ?? 0,
+      );
+    }
+
+    String formatarHora(TimeOfDay horario) {
+      final hora = horario.hour.toString().padLeft(2, '0');
+      final minuto = horario.minute.toString().padLeft(2, '0');
+
+      return '$hora:$minuto';
+    }
+
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (contextDialog) {
+        return StatefulBuilder(
+          builder: (contextDialog, atualizarDialog) {
+            return AlertDialog(
+              title: const Text('Editar horários'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: horariosTemporarios.entries.map((entrada) {
+                    final dia = entrada.key;
+                    final dados = entrada.value as Map<String, dynamic>;
+                    final aberto = dados['aberto'] == true;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    nomesDias[dia] ?? dia,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Switch(
+                                  value: aberto,
+                                  onChanged: (valor) {
+                                    atualizarDialog(() {
+                                      dados['aberto'] = valor;
+
+                                      if (valor) {
+                                        if ((dados['abertura'] ?? '')
+                                            .toString()
+                                            .isEmpty) {
+                                          dados['abertura'] = '07:00';
+                                        }
+
+                                        if ((dados['fechamento'] ?? '')
+                                            .toString()
+                                            .isEmpty) {
+                                          dados['fechamento'] = '18:00';
+                                        }
+                                      }
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            if (!aberto)
+                              const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Fechado',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            if (aberto)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () async {
+                                        final horarioSelecionado =
+                                            await showTimePicker(
+                                              context: contextDialog,
+                                              initialTime: converterHora(
+                                                (dados['abertura'] ?? '07:00')
+                                                    .toString(),
+                                              ),
+                                            );
+
+                                        if (horarioSelecionado == null) return;
+
+                                        atualizarDialog(() {
+                                          dados['abertura'] = formatarHora(
+                                            horarioSelecionado,
+                                          );
+                                        });
+                                      },
+                                      child: Text('Abre: ${dados['abertura']}'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () async {
+                                        final horarioSelecionado =
+                                            await showTimePicker(
+                                              context: contextDialog,
+                                              initialTime: converterHora(
+                                                (dados['fechamento'] ?? '18:00')
+                                                    .toString(),
+                                              ),
+                                            );
+
+                                        if (horarioSelecionado == null) return;
+
+                                        atualizarDialog(() {
+                                          dados['fechamento'] = formatarHora(
+                                            horarioSelecionado,
+                                          );
+                                        });
+                                      },
+                                      child: Text(
+                                        'Fecha: ${dados['fechamento']}',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(contextDialog);
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(contextDialog, horariosTemporarios);
+                  },
+                  child: const Text('Salvar horários'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

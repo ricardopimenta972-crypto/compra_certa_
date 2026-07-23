@@ -11,6 +11,7 @@ class Mercado {
   String telefone;
   String whatsapp;
   String horarioFuncionamento;
+  Map<String, dynamic> horariosFuncionamento;
   int creditosDisponiveis;
   double? latitude;
   double? longitude;
@@ -28,6 +29,7 @@ class Mercado {
     required this.telefone,
     this.whatsapp = '',
     this.horarioFuncionamento = '',
+    this.horariosFuncionamento = const {},
     this.creditosDisponiveis = 100,
     this.latitude,
     this.longitude,
@@ -47,6 +49,7 @@ class Mercado {
       'telefone': telefone,
       'whatsapp': whatsapp,
       'horarioFuncionamento': horarioFuncionamento,
+      'horariosFuncionamento': horariosFuncionamento,
       'creditosDisponiveis': creditosDisponiveis,
       'latitude': latitude,
       'longitude': longitude,
@@ -67,6 +70,9 @@ class Mercado {
       telefone: map['telefone'] ?? '',
       whatsapp: map['whatsapp'] ?? '',
       horarioFuncionamento: map['horarioFuncionamento'] ?? '',
+      horariosFuncionamento: Map<String, dynamic>.from(
+        map['horariosFuncionamento'] ?? {},
+      ),
       creditosDisponiveis: map['creditosDisponiveis'] ?? map['creditos'] ?? 100,
       latitude: map['latitude']?.toDouble(),
       longitude: map['longitude']?.toDouble(),
